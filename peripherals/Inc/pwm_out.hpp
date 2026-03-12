@@ -4,7 +4,7 @@
 
 #ifdef HAL_TIM_MODULE_ENABLED
 
-namespace abu2023::stm32_peripherals {
+namespace stm32_library::stm32_peripherals {
 class PwmOut {
 public:
   PwmOut(TIM_HandleTypeDef *handle, uint32_t ch) : handle_(handle), ch_(ch) {
@@ -62,6 +62,6 @@ private:
   uint32_t ch_;
 };
 
-} // namespace abu2023::stm32_peripherals
+} // namespace stm32_library::stm32_peripherals
 
 #endif // HAL_TIM_MODULE_ENABLED

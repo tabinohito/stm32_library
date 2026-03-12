@@ -11,7 +11,7 @@
 
 #include <stdio.h>
 
-namespace abu2023::stm32_peripherals {
+namespace stm32_library::stm32_peripherals {
 [[maybe_unused]] static UART_HandleTypeDef *hstduart;
 
 #ifdef STM32_LIBRARY_STD_PRINTF_ENABLE
@@ -46,24 +46,24 @@ void enable_stdio(UART_HandleTypeDef *handle) {
 }
 #endif
 
-} // namespace abu2023::stm32_peripherals
+} // namespace stm32_library::stm32_peripherals
 
 #ifdef STM32_LIBRARY_STD_PRINTF_ENABLE
 extern "C" int __io_putchar(int ch) {
-  if (abu2023::stm32_peripherals::hstduart != NULL)
-    HAL_UART_Transmit(abu2023::stm32_peripherals::hstduart, (uint8_t *)&ch, 1, 10);
+  if (stm32_library::stm32_peripherals::hstduart != NULL)
+    HAL_UART_Transmit(stm32_library::stm32_peripherals::hstduart, (uint8_t *)&ch, 1, 10);
   return 0;
 }
 #endif // STM32_LIBRARY_STD_PRINTF_ENABLE
 
 #ifdef STM32_LIBRARY_STD_SCANF_ENABLE
 extern "C" int __io_getchar(void) {
-  if (abu2023::stm32_peripherals::hstduart != NULL) {
+  if (stm32_library::stm32_peripherals::hstduart != NULL) {
     HAL_StatusTypeDef status = HAL_BUSY;
     uint8_t data;
 
     while (status != HAL_OK)
-      status = HAL_UART_Receive(abu2023::stm32_peripherals::hstduart, &data, 1, 10);
+      status = HAL_UART_Receive(stm32_library::stm32_peripherals::hstduart, &data, 1, 10);
 
     return data;
   }

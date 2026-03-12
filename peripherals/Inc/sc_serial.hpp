@@ -5,7 +5,7 @@
 #include "uart.hpp"
 #include <cassert>
 
-namespace abu2023::stm32_peripherals {
+namespace stm32_library::stm32_peripherals {
 
 #define INST_PING 0x01
 #define INST_READ 0x02
@@ -373,6 +373,6 @@ private:
   Uart serial_;
 };
 
-} // namespace abu2023::stm32_peripherals
+} // namespace stm32_library::stm32_peripherals
 
 #endif // HAL_UART_MODULE_ENABLED

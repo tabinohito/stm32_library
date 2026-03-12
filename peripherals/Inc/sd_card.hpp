@@ -7,7 +7,7 @@
 #include <fatfs.h>
 #include <string.h>
 
-namespace abu2023::stm32_peripherals {
+namespace stm32_library::stm32_peripherals {
 class SdCard {
 public:
   SdCard(SD_HandleTypeDef *hsd) {
@@ -72,6 +72,6 @@ private:
   FIL file_;
 };
 
-} // namespace abu2023::stm32_peripherals
+} // namespace stm32_library::stm32_peripherals
 
 #endif // HAL_SD_MODULE_ENABLED

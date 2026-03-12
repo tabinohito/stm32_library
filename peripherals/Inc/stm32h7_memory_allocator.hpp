@@ -25,7 +25,7 @@ DualShock3::DualShock3(UartSerial serial) :
 
 */
 
-namespace abu2023::stm32_peripherals {
+namespace stm32_library::stm32_peripherals {
 
 namespace ram_d2_alocator {
 namespace internal {
@@ -55,6 +55,6 @@ static uint8_t *allocate(const size_t size) {
 
 } // namespace ram_d2_alocator
 
-} // namespace abu2023::stm32_peripherals
+} // namespace stm32_library::stm32_peripherals
 
 #endif // STM32H7xx_H

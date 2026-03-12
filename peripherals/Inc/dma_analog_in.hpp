@@ -8,7 +8,7 @@
 #include <map>
 #include <vector>
 
-namespace abu2023::stm32_peripherals {
+namespace stm32_library::stm32_peripherals {
 class DmaAnalogIn {
 public:
   static void attach_handle(ADC_HandleTypeDef *handle) {
@@ -141,6 +141,6 @@ private:
   static inline std::map<ADC_HandleTypeDef *, adc_handle_t> handles_;
 };
 
-} // namespace abu2023::stm32_peripherals
+} // namespace stm32_library::stm32_peripherals
 
 #endif // HAL_ADC_MODULE_ENABLED

@@ -1,8 +1,8 @@
-#include "../can.hpp"
+#include "../Inc/can.hpp"
 
 #if defined(HAL_CAN_MODULE_ENABLED)
 // CAN初期化
-abu2023::stm32_peripherals::Can::Can(CanHandleType *handle, uint32_t filter_id, uint32_t filter_mask)
+stm32_library::stm32_peripherals::Can::Can(CanHandleType *handle, uint32_t filter_id, uint32_t filter_mask)
     : handle_(handle) {
   if (handle_->State == HAL_CAN_STATE_READY) {
     CAN_FilterTypeDef filter;
@@ -38,7 +38,7 @@ abu2023::stm32_peripherals::Can::Can(CanHandleType *handle, uint32_t filter_id, 
 }
 
 // CAN送信
-HAL_StatusTypeDef abu2023::stm32_peripherals::Can::write(uint32_t id, uint8_t *data, uint32_t size, bool blocking) {
+HAL_StatusTypeDef stm32_library::stm32_peripherals::Can::write(uint32_t id, uint8_t *data, uint32_t size, bool blocking) {
   CAN_TxHeaderTypeDef tx_header;
   tx_header.StdId = id;
   tx_header.IDE = CAN_ID_STD;
@@ -56,9 +56,9 @@ HAL_StatusTypeDef abu2023::stm32_peripherals::Can::write(uint32_t id, uint8_t *d
 #ifdef CAN_RX_FIFO0
 // コールバックの実装
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
-  using namespace abu2023::stm32_peripherals;
+  using namespace stm32_library::stm32_peripherals;
   CAN_RxHeaderTypeDef rx_header;
-  abu2023::stm32_peripherals::CanMessage msg;
+  stm32_library::stm32_peripherals::CanMessage msg;
 
   if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rx_header, msg.data.data()) == HAL_OK) {
     msg.id = rx_header.StdId;
@@ -70,7 +70,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
 
 #elif defined(HAL_FDCAN_MODULE_ENABLED)
 // FDCAN初期化
-abu2023::stm32_peripherals::Can::Can(CanHandleType *handle, uint32_t filter_id, uint32_t filter_mask)
+stm32_library::stm32_peripherals::Can::Can(CanHandleType *handle, uint32_t filter_id, uint32_t filter_mask)
     : handle_(handle) {
   if (handle_->State == HAL_FDCAN_STATE_READY) {
     FDCAN_FilterTypeDef filter;
@@ -101,7 +101,7 @@ abu2023::stm32_peripherals::Can::Can(CanHandleType *handle, uint32_t filter_id, 
 }
 
 // FDCAN送信
-HAL_StatusTypeDef abu2023::stm32_peripherals::Can::write(uint32_t id, uint8_t *data, uint32_t size, bool blocking) {
+HAL_StatusTypeDef stm32_library::stm32_peripherals::Can::write(uint32_t id, uint8_t *data, uint32_t size, bool blocking) {
   FDCAN_TxHeaderTypeDef tx_header;
   tx_header.Identifier = id;
   tx_header.IdType = FDCAN_STANDARD_ID;
@@ -122,9 +122,9 @@ HAL_StatusTypeDef abu2023::stm32_peripherals::Can::write(uint32_t id, uint8_t *d
 #ifdef FDCAN_RX_FIFO0
 // コールバックの実装
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs) {
-  using namespace abu2023::stm32_peripherals;
+  using namespace stm32_library::stm32_peripherals;
   FDCAN_RxHeaderTypeDef rx_header;
-  abu2023::stm32_peripherals::CanMessage msg;
+  stm32_library::stm32_peripherals::CanMessage msg;
 
   if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &rx_header, msg.data.data()) == HAL_OK) {
     msg.id = rx_header.Identifier;

@@ -6,7 +6,7 @@
 #include <map>
 #include <unordered_map>
 
-namespace abu2023::stm32_peripherals::callback {
+namespace stm32_library::stm32_peripherals::callback {
 inline std::unordered_map<intptr_t, std::multimap<uint8_t, std::any>> callback_fns;
 
 inline void attach(intptr_t handle, std::any &&fn, uint8_t priority) {
@@ -18,4 +18,4 @@ template <class T, class... Args> inline void callback(intptr_t handle, Args... 
     std::any_cast<std::function<T>>(f.second)(args...);
   }
 }
-} // namespace abu2023::stm32_peripherals::callback
+} // namespace stm32_library::stm32_peripherals::callback

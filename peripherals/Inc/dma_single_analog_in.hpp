@@ -8,7 +8,7 @@
 #include <map>
 #include <vector>
 
-namespace abu2023::stm32_peripherals {
+namespace stm32_library::stm32_peripherals {
 class DmaSingleAnalogIn {
 public:
   DmaSingleAnalogIn(ADC_HandleTypeDef *handle)
@@ -44,6 +44,6 @@ private:
   uint16_t max_val_;
 };
 
-} // namespace abu2023::stm32_peripherals
+} // namespace stm32_library::stm32_peripherals
 
 #endif // HAL_ADC_MODULE_ENABLED

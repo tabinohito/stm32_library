@@ -12,9 +12,9 @@
 #include <span>
 #include <unordered_map>
 
-#include "misc/callback.hpp"
+#include "../misc/callback.hpp"
 
-namespace abu2023::stm32_peripherals {
+namespace stm32_library::stm32_peripherals {
 struct CanMessage {
   uint32_t id;
   std::array<uint8_t, 8> data;
@@ -66,5 +66,5 @@ public:
     callback::attach(reinterpret_cast<intptr_t>(handle_), std::move(fn), priority);
   }
 };
-} // namespace abu2023::stm32_peripherals
+} // namespace stm32_library::stm32_peripherals
 #endif

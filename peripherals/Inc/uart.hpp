@@ -4,12 +4,12 @@
 
 #ifdef HAL_UART_MODULE_ENABLED
 
-#include "misc/callback.hpp"
-#include "misc/format.hpp"
+#include "../misc/callback.hpp"
+#include "../misc/format.hpp"
 #include <queue>
 #include <string>
 
-namespace abu2023::stm32_peripherals {
+namespace stm32_library::stm32_peripherals {
 class Uart {
 private:
   UART_HandleTypeDef *handle_;
@@ -120,6 +120,6 @@ public:
     return read_data;
   };
 };
-} // namespace abu2023::stm32_peripherals
+} // namespace stm32_library::stm32_peripherals
 
 #endif // HAL_UART_MODULE_ENABLED

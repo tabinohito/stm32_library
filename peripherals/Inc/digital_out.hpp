@@ -3,7 +3,7 @@
 #include "main.h"
 
 #ifdef HAL_GPIO_MODULE_ENABLED
-namespace abu2023::stm32_peripherals {
+namespace stm32_library::stm32_peripherals {
 class DigitalOut {
 private:
   GPIO_TypeDef *port_;
@@ -21,5 +21,5 @@ public:
   int read() { return HAL_GPIO_ReadPin(port_, pin_); }
   operator int() { return read(); }
 };
-} // namespace abu2023::stm32_peripherals
+} // namespace stm32_library::stm32_peripherals
 #endif // HAL_GPIO_MODULE_ENABLED

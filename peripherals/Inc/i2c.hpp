@@ -6,7 +6,7 @@
 
 #include <vector>
 
-namespace abu2023::stm32_peripherals {
+namespace stm32_library::stm32_peripherals {
 class I2c {
 private:
   I2C_HandleTypeDef *handle_;
@@ -51,6 +51,6 @@ public:
   };
 };
 
-} // namespace abu2023::stm32_peripherals
+} // namespace stm32_library::stm32_peripherals
 
 #endif // HAL_I2C_MODULE_ENABLED

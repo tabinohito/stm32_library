@@ -8,9 +8,9 @@
 #include <functional>
 #include <unordered_map>
 
-#include "misc/callback.hpp"
+#include "../misc/callback.hpp"
 
-namespace abu2023::stm32_peripherals {
+namespace stm32_library::stm32_peripherals {
 class DigitalIn {
 private:
   GPIO_TypeDef *port_;
@@ -28,5 +28,5 @@ public:
     callback::attach(pin_, std::move(fn), priority);
   }
 };
-} // namespace abu2023::stm32_peripherals
+} // namespace stm32_library::stm32_peripherals
 #endif // HAL_GPIO_MODULE_ENABLED

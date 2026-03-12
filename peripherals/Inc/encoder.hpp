@@ -6,7 +6,7 @@
 
 #include <numbers>
 
-namespace abu2023::stm32_peripherals {
+namespace stm32_library::stm32_peripherals {
 class Encoder {
 private:
   TIM_HandleTypeDef *handle_;
@@ -116,6 +116,6 @@ private:
     return 0;
   }
 };
-} // namespace abu2023::stm32_peripherals
+} // namespace stm32_library::stm32_peripherals
 
 #endif // HAL_TIM_MODULE_ENABLED

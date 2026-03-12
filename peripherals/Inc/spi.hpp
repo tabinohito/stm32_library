@@ -4,7 +4,7 @@
 
 #ifdef HAL_SPI_MODULE_ENABLED
 
-namespace abu2023::stm32_peripherals {
+namespace stm32_library::stm32_peripherals {
 class Spi {
 public:
   Spi(SPI_HandleTypeDef *handle) : handle_(handle) {}
@@ -47,6 +47,6 @@ private:
   SPI_HandleTypeDef *handle_;
 };
 
-} // namespace abu2023::stm32_peripherals
+} // namespace stm32_library::stm32_peripherals
 
 #endif // HAL_SPI_MODULE_ENABLED

@@ -11,7 +11,7 @@
 #include <map>
 #include <cmath>
 
-namespace abu2023::stm32_peripherals {
+namespace stm32_library::stm32_peripherals {
 
 #ifndef MAX_TICKER_ID
 #define MAX_TICKER_ID (16 - 1)
@@ -129,6 +129,6 @@ private:
   std::array<uint32_t, MAX_TICKER_ID + 1> pretime_;
 };
 
-} // namespace abu2023::stm32_peripherals
+} // namespace stm32_library::stm32_peripherals
 
 #endif // HAL_TIM_MODULE_ENABLED
