@@ -16,31 +16,36 @@ public:
   }
 
   void write(float value) {
-    if (value < 0)
-      value = 0;
-    if (value > 1)
-      value = 1;
-    uint32_t pulse = (uint32_t)((float)handle_->Init.Period * value + 0.5);
+    // C++20: 値を 0.0 ~ 1.0 の範囲にクランプ
+    value = std::clamp(value, 0.0f, 1.0f);
+    
+    // 【修正箇所】 CubeMxの初期値(Init.Period)ではなく、現在のレジスタ(ARR)から周期を直接読み取る
+    uint32_t current_arr = handle_->Instance->ARR;
+    uint32_t pulse = (uint32_t)((float)current_arr * value + 0.5f);
     __HAL_TIM_SET_COMPARE(handle_, ch_, pulse);
   }
 
   float read() {
-    float value = 0;
-    if (handle_->Init.Period > 0) {
-      value = (float)(__HAL_TIM_GET_COMPARE(handle_, ch_)) / (float)(handle_->Init.Period);
+    uint32_t current_arr = handle_->Instance->ARR;
+    if (current_arr > 0) {
+      float value = (float)(__HAL_TIM_GET_COMPARE(handle_, ch_)) / (float)current_arr;
+      return std::clamp(value, 0.0f, 1.0f);
     }
-    return ((value > (float)1.0) ? (float)(1.0) : (value));
+    return 0.0f;
   }
 
-  void period(float seconds) { period_us(1000000 * seconds); } // あとでなおす 16bitだときびしい(はいりきらんかも)
-  void period_ms(int ms) { period_us(1000 * ms); }
-  void period_us(int us) { __HAL_TIM_SetCompare(handle_, ch_, us); } // あとでなおす(1us / cnt と仮定)
-  // int read_period_us();
+  // クロックとレジスタから現在のPWM周波数(Hz)を読み取るメソッド
+  uint32_t get_frequency() const {
+    uint32_t base_clock = HAL_RCC_GetSysClockFreq(); 
+    uint32_t psc = handle_->Instance->PSC;
+    uint32_t arr = handle_->Instance->ARR;
+    if (arr == 0) return 0;
+    return base_clock / ((psc + 1) * (arr + 1));
+  }
 
-  // void pulsewidth(float seconds);
-  // void pulsewidth_ms(int ms);
-  // void pulsewidth_us(int us);
-  // int read_pulsewitdth_us();
+  // Toneクラス等からアクセスするためのゲッター
+  TIM_HandleTypeDef* get_handle() const { return handle_; }
+  uint32_t get_ch() const { return ch_; }
 
   PwmOut &operator=(float value) {
     write(value);
@@ -61,7 +66,6 @@ private:
   TIM_HandleTypeDef *handle_;
   uint32_t ch_;
 };
-
 } // namespace stm32_library::stm32_peripherals
 
 #endif // HAL_TIM_MODULE_ENABLED
