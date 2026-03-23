@@ -1,33 +1,34 @@
 /*
  * udp.hpp
  *
- *  Created on: 2026/03/23
- *      Author: tako
+ * Created on: 2026/03/23
+ * Author: tako
  */
 #pragma once
-#ifndef LWIP_UDP
+
+#include "main.h"
+#ifdef HAL_ETH_MODULE_ENABLED
 
 #include "lwip/udp.h"
 #include "lwip/pbuf.h"
 #include <functional>
 #include <cstring>
+#include <vector> // 追加
+
+namespace stm32_library::stm32_peripherals {
 
 class UdpSocket {
 public:
-    // コンストラクタ：ポート番号と、受信時のコールバックを受け取る
-    // コールバックには「誰から来たか（IP/Port）」も渡せるように拡張しています
     using RecvCallback = std::function<void(pbuf* p, const ip_addr_t* addr, uint16_t port)>;
 
-    UdpSocket(uint16_t local_port, RecvCallback callback) : callback_(callback) {
+    // コンストラクタ：ポートのバインドのみを行うようにシンプル化
+    UdpSocket(uint16_t local_port) {
         pcb_ = udp_new();
         if (pcb_ != nullptr) {
-            // 自分のポートをバインド（送受信共通で使う）
             udp_bind(pcb_, IP_ADDR_ANY, local_port);
             
-            // 受信コールバックの登録
-            if (callback_) {
-                udp_recv(pcb_, UdpSocket::recv_callback_static, this);
-            }
+            // LwIPへの静的コールバック登録はここで済ませておく
+            udp_recv(pcb_, UdpSocket::recv_callback_static, this);
         }
     }
 
@@ -37,7 +38,19 @@ public:
         }
     }
 
-    // 特定の相手に送るための関数（udp_sendtoを使用）
+    // コールバックを追加するメソッド（Tickerクラスの設計を踏襲）
+    void attach(RecvCallback callback) {
+        if (callback) {
+            callbacks_.push_back(callback);
+        }
+    }
+
+    // コールバックを全てクリアするメソッド（必要に応じて）
+    void clear_callbacks() {
+        callbacks_.clear();
+    }
+
+    // 特定の相手に送るための関数
     bool sendTo(const char* data, size_t len, const ip_addr_t* dest_ip, uint16_t dest_port) {
         if (pcb_ == nullptr) return false;
 
@@ -47,11 +60,9 @@ public:
         }
         
         memcpy(p->payload, data, len);
-        
-        // udp_send ではなく udp_sendto を使うことで、都度宛先を指定できる
         err_t err = udp_sendto(pcb_, p, dest_ip, dest_port);
-        
         pbuf_free(p); // メモリ解放
+        
         return (err == ERR_OK);
     }
 
@@ -61,16 +72,22 @@ private:
         if (p == nullptr) return;
 
         UdpSocket* socket = reinterpret_cast<UdpSocket*>(arg);
-        if (socket && socket->callback_) {
-            // 受信したデータと共に、送信元のIPとポート番号をユーザーに渡す
-            socket->callback_(p, addr, port);
+        if (socket) {
+            // 登録されている全てのコールバック関数にパケットを分配
+            for (auto& cb : socket->callbacks_) {
+                cb(p, addr, port);
+            }
         }
         
-        pbuf_free(p); // ここで必ず解放する
+        // ⚠️ 超重要 ⚠️
+        // 全てのユーザーコールバックが完了した後に、ここで1回だけ解放する
+        pbuf_free(p); 
     }
     
     udp_pcb* pcb_;
-    RecvCallback callback_;
+    std::vector<RecvCallback> callbacks_; // 配列化
 };
 
-#endif 
+} // namespace stm32_library::stm32_peripherals
+
+#endif // HAL_ETH_MODULE_ENABLED
