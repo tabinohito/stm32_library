@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 
-namespace terminal
+namespace stm32_library::stm32_modules
 {
 
 /**
