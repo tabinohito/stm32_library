@@ -1,10 +1,3 @@
-/*
- * AMT252D-v.hpp
- *
- *  Created on: Jul 31, 2025
- *      Author: tako
- */
-
 #pragma once
 
 #include "main.h"
@@ -14,7 +7,7 @@
 #include "stm32_library/peripherals/stm32_peripherals.hpp"
 #include <optional>
 
-namespace motor_bench {
+namespace stm32_library::stm32_modules {
 namespace stm32_peripherals = stm32_library::stm32_peripherals;
 class Amt252d {
 	public:
