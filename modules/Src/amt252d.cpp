@@ -3,7 +3,7 @@
 
 #ifdef HAL_SPI_MODULE_ENABLED
 
-namespace motor_bench {
+namespace stm32_library::stm32_modules {
 	Amt252d::Amt252d(
 			stm32_peripherals::DigitalOut &cs,
 			stm32_peripherals::Spi &spi,
@@ -112,6 +112,6 @@ namespace motor_bench {
 	uint16_t Amt252d::get_position() { return pos; }
 	int16_t Amt252d::get_turn() { return turn; }
 
-};
+}
 
 #endif

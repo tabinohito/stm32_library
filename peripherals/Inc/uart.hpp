@@ -7,6 +7,7 @@
 #include "../misc/callback.hpp"
 #include "../misc/format.hpp"
 #include <queue>
+#include <span>
 #include <string>
 
 namespace stm32_library::stm32_peripherals {
@@ -35,6 +36,7 @@ public:
     else
       return HAL_UART_Transmit(handle_, data, size, timeout);
   }
+
   HAL_StatusTypeDef write() {
     int buf_size = buffer_.length();
     if (buf_size > UINT16_MAX)
@@ -48,6 +50,15 @@ public:
     } else {
       return HAL_BUSY;
     }
+  }
+
+  HAL_StatusTypeDef write(std::span<const uint8_t> data, uint32_t timeout = 10) {
+    if (data.size() > UINT16_MAX) {
+      return HAL_ERROR;
+    }
+    return write(const_cast<uint8_t *>(data.data()),
+                 static_cast<uint16_t>(data.size())
+                 );
   }
 
   template <class... Args> HAL_StatusTypeDef write(const char *fmt, Args... args) {
