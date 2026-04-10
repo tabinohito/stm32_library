@@ -155,6 +155,7 @@ private:
     uint8_t slave_address_;
 
     bool is_initialized() const;
+    void flush_rx();
 
     static uint16_t crc16_modbus(std::span<const uint8_t> data);
     static uint32_t parse_u32_be(const uint8_t* p);

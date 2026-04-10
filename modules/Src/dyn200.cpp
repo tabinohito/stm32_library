@@ -17,6 +17,12 @@ bool Dyn200::is_initialized() const {
     return !dma_buffer_.empty();
 }
 
+void Dyn200::flush_rx() {
+    while (uart_.dma_receive_data_num() > 0U) {
+        (void)uart_.dma_receive_data();
+    }
+}
+
 uint16_t Dyn200::crc16_modbus(std::span<const uint8_t> data) {
     uint16_t crc = 0xFFFFU;
 
@@ -106,6 +112,8 @@ Error Dyn200::read_long_value(ParameterAddress address, int32_t& out_value) {
         return Error::BufferNotInitialized;
     }
 
+    flush_rx();
+
     const auto req = build_read_request(static_cast<uint16_t>(address), 0x0002);
     uart_.write(std::span<const uint8_t>{req.data(), req.size()});
 
@@ -119,10 +127,86 @@ Error Dyn200::read_long_value(ParameterAddress address, int32_t& out_value) {
     return Error::None;
 }
 
+Error Dyn200::receive_read_response(uint8_t slave,
+                                    uint8_t function,
+                                    std::array<uint8_t, 9>& out_frame) {
+    if (!is_initialized()) {
+        return Error::BufferNotInitialized;
+    }
+
+    constexpr uint32_t kTimeoutMs = 20;
+    const uint32_t start = HAL_GetTick();
+
+    while ((HAL_GetTick() - start) < kTimeoutMs) {
+        FrameState state = FrameState::Empty;
+        const Error err = try_extract_read_frame(slave, function, out_frame, state);
+        if (err != Error::None) {
+            return err;
+        }
+
+        if (state == FrameState::Ready) {
+            return Error::None;
+        }
+    }
+
+    return Error::Timeout;
+}
+
+Error Dyn200::receive_ack_response(uint8_t slave,
+                                   uint8_t function,
+                                   std::array<uint8_t, 8>& out_frame) {
+    if (!is_initialized()) {
+        return Error::BufferNotInitialized;
+    }
+
+    constexpr uint32_t kTimeoutMs = 20;
+    const uint32_t start = HAL_GetTick();
+
+    while ((HAL_GetTick() - start) < kTimeoutMs) {
+        if (uart_.dma_receive_data_num() < kRxAckFrameSize) {
+            continue;
+        }
+
+        // 先頭同期を取りながら 8 byte ACK を切り出す
+        const uint8_t b1 = uart_.dma_receive_data();
+        if (b1 != slave) {
+            continue;
+        }
+
+        const uint8_t b2 = uart_.dma_receive_data();
+        if (b2 != function) {
+            continue;
+        }
+
+        out_frame[0] = b1;
+        out_frame[1] = b2;
+        for (std::size_t i = 2; i < out_frame.size(); ++i) {
+            out_frame[i] = uart_.dma_receive_data();
+        }
+
+        const uint16_t calc_crc =
+            crc16_modbus(std::span<const uint8_t>{out_frame.data(), out_frame.size() - 2});
+
+        const uint16_t recv_crc =
+            static_cast<uint16_t>(out_frame[6]) |
+            (static_cast<uint16_t>(out_frame[7]) << 8);
+
+        if (calc_crc != recv_crc) {
+            return Error::CrcMismatch;
+        }
+
+        return Error::None;
+    }
+
+    return Error::Timeout;
+}
+
 Error Dyn200::write_single_command(ParameterAddress address, uint16_t value) {
     if (!is_initialized()) {
         return Error::BufferNotInitialized;
     }
+
+    flush_rx();
 
     const auto req = build_write_single_request(static_cast<uint16_t>(address), value);
     uart_.write(std::span<const uint8_t>{req.data(), req.size()});
@@ -154,6 +238,8 @@ Error Dyn200::write_parameter(ParameterAddress address, uint32_t value) {
     if (!is_initialized()) {
         return Error::BufferNotInitialized;
     }
+
+    flush_rx();
 
     const auto req = build_write_multiple_request(static_cast<uint16_t>(address), value);
     uart_.write(std::span<const uint8_t>{req.data(), req.size()});
@@ -331,6 +417,8 @@ Error Dyn200::send_read_request(ParameterAddress address) {
     if (!is_initialized()) {
         return Error::BufferNotInitialized;
     }
+
+    flush_rx();
 
     const auto req = build_read_request(static_cast<uint16_t>(address), 0x0002);
     uart_.write(std::span<const uint8_t>{req.data(), req.size()});
