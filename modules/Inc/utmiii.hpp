@@ -57,6 +57,9 @@ enum class PendingCommand : uint8_t {
     RI,
     RJ,
     RK,
+    W32,
+    W41,
+    W42,
 };
 
 enum class TorqueFilter : uint8_t {
@@ -110,6 +113,14 @@ public:
     Error digital_zero();
     Error digital_zero_reset();
 
+    Error request_read_torque_filter();
+    Error request_read_speed_filter();
+    Error request_read_min_display_speed_rpm();
+
+    Error poll_torque_filter(TorqueFilter& out_value);
+    Error poll_speed_filter(SpeedFilter& out_value);
+    Error poll_min_display_speed_rpm(uint8_t& out_value);
+
 private:
     static constexpr char kTerminator = '\r';
 
@@ -119,6 +130,7 @@ private:
     PendingCommand pending_{PendingCommand::None};
 
     bool is_initialized() const;
+    void flush_rx();
 
     Error send_ascii_command(std::span<const char> command, PendingCommand pending);
     Error send_ascii_command_no_wait(std::span<const char> command);
@@ -133,6 +145,12 @@ private:
                            std::size_t& left_len,
                            const char*& right_ptr,
                            std::size_t& right_len);
+    static bool parse_unsigned_decimal(const char* str, std::size_t len, uint32_t& out_value);
+    static bool strip_fixed_read_payload(PendingCommand pending,
+                                  const char* line,
+                                  std::size_t len,
+                                  const char*& value_ptr,
+                                  std::size_t& value_len);
 };
 
 }// namespace stm32_library::stm32_modules
