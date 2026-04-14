@@ -73,6 +73,7 @@ enum class BaudRateCode : uint32_t {
     Baud14400 = 2,
     Baud19200 = 3,
     Baud38400 = 4,
+	Baud115200 = 6,
 };
 
 enum class PendingRead : uint8_t {

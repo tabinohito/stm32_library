@@ -134,7 +134,7 @@ Error Dyn200::receive_read_response(uint8_t slave,
         return Error::BufferNotInitialized;
     }
 
-    constexpr uint32_t kTimeoutMs = 20;
+    constexpr uint32_t kTimeoutMs = 50;
     const uint32_t start = HAL_GetTick();
 
     while ((HAL_GetTick() - start) < kTimeoutMs) {
@@ -159,7 +159,7 @@ Error Dyn200::receive_ack_response(uint8_t slave,
         return Error::BufferNotInitialized;
     }
 
-    constexpr uint32_t kTimeoutMs = 20;
+    constexpr uint32_t kTimeoutMs = 50;
     const uint32_t start = HAL_GetTick();
 
     while ((HAL_GetTick() - start) < kTimeoutMs) {
@@ -421,7 +421,12 @@ Error Dyn200::send_read_request(ParameterAddress address) {
     flush_rx();
 
     const auto req = build_read_request(static_cast<uint16_t>(address), 0x0002);
-    uart_.write(std::span<const uint8_t>{req.data(), req.size()});
+    const auto hal = uart_.write(std::span<const uint8_t>{req.data(), req.size()});
+
+    if (hal != HAL_OK) {
+        return Error::Timeout;
+    }
+
     return Error::None;
 }
 
