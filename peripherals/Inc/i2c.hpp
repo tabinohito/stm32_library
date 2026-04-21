@@ -21,9 +21,12 @@ public:
   }
 
   bool read_reg(uint8_t addr, uint8_t reg, uint8_t *buffer, size_t length) {
-    HAL_I2C_Master_Transmit(handle_, addr << 1, &reg, 1, 100);
-    HAL_I2C_Master_Receive(handle_, addr << 1, buffer, length, 100);
-
+    if (HAL_I2C_Master_Transmit(handle_, static_cast<uint16_t>(addr) << 1, &reg, 1, 100) != HAL_OK) {
+      return false;
+    }
+    if (HAL_I2C_Master_Receive(handle_, static_cast<uint16_t>(addr) << 1, buffer, length, 100) != HAL_OK) {
+      return false;
+    }
     return true;
   }
 
