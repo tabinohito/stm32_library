@@ -35,7 +35,7 @@ public:
   }
 
   bool write_dma(uint8_t *tx_buf, uint8_t *rx_buf, size_t length) {
-    if (HAL_SPI_TransmitReceive_DMA(handle_, (uint8_t *)tx_buf, (uint8_t *)&rx_buf, length) != HAL_OK) {
+    if (HAL_SPI_TransmitReceive_DMA(handle_, (uint8_t *)tx_buf, (uint8_t *)rx_buf, length) != HAL_OK) {
       return false;
     }
     while (__HAL_DMA_GET_COUNTER(handle_->hdmarx) || __HAL_DMA_GET_COUNTER(handle_->hdmatx))
