@@ -13,6 +13,7 @@
 #include "Inc/stdio_support.hpp"
 #include "Inc/ticker.hpp"
 #include "Inc/uart.hpp"
+#include "Inc/uart_ll.hpp"
 #include "Inc/sc_serial.hpp"
 #include "Inc/udp.hpp"
 #include "Inc/ethernet_diagnostics.hpp"
