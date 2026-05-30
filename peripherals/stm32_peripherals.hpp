@@ -15,3 +15,5 @@
 #include "Inc/uart.hpp"
 #include "Inc/sc_serial.hpp"
 #include "Inc/udp.hpp"
+#include "Inc/ethernet_diagnostics.hpp"
+#include "Inc/ethernet_service.hpp"
