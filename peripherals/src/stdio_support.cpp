@@ -1,4 +1,3 @@
-#pragma once
 #include "../Inc/stdio_support.hpp"
 
 #ifdef HAL_UART_MODULE_ENABLED

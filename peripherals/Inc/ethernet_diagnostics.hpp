@@ -73,13 +73,8 @@ public:
             return false;
         }
 
-        const uint32_t old_addr = eth_->Init.PhyAddress;
-        eth_->Init.PhyAddress = phy_addr;
-
         const HAL_StatusTypeDef status =
-            HAL_ETH_ReadPHYRegister(eth_, static_cast<uint16_t>(reg), &value);
-
-        eth_->Init.PhyAddress = old_addr;
+            HAL_ETH_ReadPHYRegister(eth_, phy_addr, reg, &value);
 
         return status == HAL_OK;
     }
@@ -211,7 +206,7 @@ public:
             return;
         }
 
-        printf("heth.State        = %u\r\n", eth_->State);
+        printf("heth.State        = %u\r\n", static_cast<unsigned>(eth_->gState));
         printf("ETH->DMASR        = 0x%08lX\r\n", ETH->DMASR);
         printf("ETH->DMAOMR       = 0x%08lX\r\n", ETH->DMAOMR);
         printf("ETH->MACCR        = 0x%08lX\r\n", ETH->MACCR);
@@ -251,32 +246,8 @@ public:
 #ifdef CHECKSUM_CHECK_ICMP
         printf("CHECKSUM_CHECK_ICMP  = %d\r\n", CHECKSUM_CHECK_ICMP);
 #endif
-
-        if (eth_ != nullptr) {
-            printf("heth.Init.ChecksumMode = 0x%08lX\r\n", eth_->Init.ChecksumMode);
-        }
-
-        warn_checksum_mismatch();
     }
 
-    void warn_checksum_mismatch()
-    {
-#if defined(CHECKSUM_BY_HARDWARE)
-        if (eth_ == nullptr) {
-            return;
-        }
-
-        if (CHECKSUM_BY_HARDWARE == 0 &&
-            eth_->Init.ChecksumMode == ETH_CHECKSUM_BY_HARDWARE) {
-            printf("WARNING: lwIP uses software checksum, but ETH HAL is hardware checksum mode.\r\n");
-        }
-
-        if (CHECKSUM_BY_HARDWARE == 1 &&
-            eth_->Init.ChecksumMode == ETH_CHECKSUM_BY_SOFTWARE) {
-            printf("WARNING: lwIP uses hardware checksum, but ETH HAL is software checksum mode.\r\n");
-        }
-#endif
-    }
 
 #if STM32_LIBRARY_ETHERNETIF_COUNTERS_ENABLED
     void print_ethernetif_counters()
