@@ -634,6 +634,10 @@ private:
             return;
         }
 
+        if ((SCB->CCR & SCB_CCR_DC_Msk) == 0U) {
+            return;
+        }
+
         const uintptr_t start =
             reinterpret_cast<uintptr_t>(ptr) & ~static_cast<uintptr_t>(31U);
 
