@@ -62,6 +62,11 @@ struct UdpPacket {
 class UdpSocket {
 public:
     using CallbackFnType = void(const UdpPacket& packet);
+    using PbufCallbackFnType = void(
+        pbuf* packet,
+        const ip_addr_t* addr,
+        uint16_t port
+    );
 
     explicit UdpSocket(uint16_t local_port)
         : local_port_(local_port)
@@ -106,8 +111,29 @@ public:
         );
     }
 
+    void attach_pbuf(
+        std::function<PbufCallbackFnType>&& fn,
+        uint8_t priority = 100
+    ) {
+        if (!fn) return;
+
+        pbuf_callbacks_.push_back(PbufCallbackEntry{
+            std::move(fn),
+            priority
+        });
+
+        std::sort(
+            pbuf_callbacks_.begin(),
+            pbuf_callbacks_.end(),
+            [](const PbufCallbackEntry& a, const PbufCallbackEntry& b) {
+                return a.priority < b.priority;
+            }
+        );
+    }
+
     void clear_callbacks() {
         callbacks_.clear();
+        pbuf_callbacks_.clear();
     }
 
     bool write(
@@ -177,6 +203,11 @@ private:
         uint8_t priority;
     };
 
+    struct PbufCallbackEntry {
+        std::function<PbufCallbackFnType> fn;
+        uint8_t priority;
+    };
+
     static void recv_callback_static(
         void* arg,
         udp_pcb*,
@@ -198,6 +229,14 @@ private:
     }
 
     void handle_receive(pbuf* p, const ip_addr_t* addr, uint16_t port) {
+        for (auto& callback : pbuf_callbacks_) {
+            callback.fn(p, addr, port);
+        }
+
+        if (callbacks_.empty()) {
+            return;
+        }
+
         UdpPacket packet;
         packet.remote_port = port;
 
@@ -219,6 +258,7 @@ private:
     uint16_t local_port_;
     udp_pcb* pcb_ = nullptr;
     std::vector<CallbackEntry> callbacks_{};
+    std::vector<PbufCallbackEntry> pbuf_callbacks_{};
 };
 
 } // namespace stm32_library::stm32_peripherals
