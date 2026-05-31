@@ -212,11 +212,11 @@ public:
 
         if (use_dma_transmit_) {
             if (tx_dma_queue_enabled_) {
-                const size_t pushed = tx_enqueue(data, size);
+                const bool queued = tx_enqueue_all(data, size);
                 kick_tx_dma();
 
-                if (pushed != size) {
-                    add_u32(tx_drop_count_, static_cast<uint32_t>(size - pushed));
+                if (!queued) {
+                    add_u32(tx_drop_count_, static_cast<uint32_t>(size));
                     return HAL_BUSY;
                 }
 
@@ -518,25 +518,30 @@ private:
         return tx_head_ == tx_tail_;
     }
 
-    bool queue_full_next_unsafe(size_t next) const {
-        return next == tx_tail_;
+    size_t queue_free_unsafe() const {
+        if (tx_queue_capacity_ < 2) {
+            return 0;
+        }
+
+        return (tx_queue_capacity_ - 1U) - queue_size_unsafe();
     }
 
-    size_t tx_enqueue(const uint8_t *data, size_t size) {
+    bool tx_enqueue_all(const uint8_t *data, size_t size) {
         if (tx_queue_ == nullptr || tx_queue_capacity_ < 2) {
-            return 0;
+            return false;
         }
 
         size_t pushed = 0;
 
         const uint32_t primask = enter_critical();
 
+        if (size > queue_free_unsafe()) {
+            restore_critical(primask);
+            return false;
+        }
+
         while (pushed < size) {
             const size_t next = next_index(tx_head_);
-
-            if (queue_full_next_unsafe(next)) {
-                break;
-            }
 
             tx_queue_[tx_head_] = data[pushed];
             tx_head_ = next;
@@ -547,7 +552,7 @@ private:
 
         restore_critical(primask);
 
-        return pushed;
+        return true;
     }
 
     void kick_tx_dma() {
