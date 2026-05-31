@@ -396,7 +396,7 @@ public:
     uint8_t dma_receive_data() {
         uint8_t read_data = 0;
 
-        uint8_t remain_data = dma_receive_data_num();
+        uint16_t remain_data = dma_receive_data_num();
         if (remain_data > 0) {
             read_data = data_p_[index_read_];
             index_read_++;
