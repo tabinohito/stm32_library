@@ -14,6 +14,7 @@
 #include <span>
 #include <string>
 #include <vector>
+#include <version>
 
 namespace stm32_library::stm32_peripherals {
 
@@ -247,7 +248,7 @@ public:
         return write(static_cast<const uint8_t *>(data), size, timeout);
     }
 
-#if __cplusplus >= 202002L
+#ifdef __cpp_lib_span
     virtual HAL_StatusTypeDef write(
         std::span<const uint8_t> data,
         uint32_t timeout = 10
