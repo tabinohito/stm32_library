@@ -7,6 +7,7 @@
 #include "../misc/callback.hpp"
 #include "../misc/format.hpp"
 
+#include <algorithm>
 #include <climits>
 #include <cstddef>
 #include <cstdint>
@@ -54,6 +55,22 @@ private:
 public:
     using CallbackFnType = void();
 
+    enum class PhysicalMode {
+        Uart,
+        Rs485,
+    };
+
+    struct LineConfig {
+        uint32_t baud_rate = 115200;
+        PhysicalMode physical_mode = PhysicalMode::Uart;
+        bool swap_rx_tx = false;
+        bool invert_tx = false;
+        bool invert_rx = false;
+        uint32_t rs485_de_polarity = UART_DE_POLARITY_HIGH;
+        uint32_t rs485_assertion_time = 0;
+        uint32_t rs485_deassertion_time = 0;
+    };
+
     explicit Uart(UART_HandleTypeDef *handle) : handle_(handle) {
         register_instance(this);
     }
@@ -70,6 +87,69 @@ public:
         return handle_;
     }
 
+    HAL_StatusTypeDef configure(const LineConfig& config) {
+        if (handle_ == nullptr) {
+            return HAL_ERROR;
+        }
+
+        (void)HAL_UART_Abort(handle_);
+
+        handle_->Init.BaudRate = config.baud_rate;
+        handle_->Init.Mode = UART_MODE_TX_RX;
+        handle_->AdvancedInit.AdvFeatureInit =
+            UART_ADVFEATURE_TXINVERT_INIT |
+            UART_ADVFEATURE_RXINVERT_INIT |
+            UART_ADVFEATURE_SWAP_INIT;
+        handle_->AdvancedInit.TxPinLevelInvert = config.invert_tx ?
+            UART_ADVFEATURE_TXINV_ENABLE :
+            UART_ADVFEATURE_TXINV_DISABLE;
+        handle_->AdvancedInit.RxPinLevelInvert = config.invert_rx ?
+            UART_ADVFEATURE_RXINV_ENABLE :
+            UART_ADVFEATURE_RXINV_DISABLE;
+        handle_->AdvancedInit.Swap = config.swap_rx_tx ?
+            UART_ADVFEATURE_SWAP_ENABLE :
+            UART_ADVFEATURE_SWAP_DISABLE;
+
+        if (config.physical_mode == PhysicalMode::Rs485) {
+            return HAL_RS485Ex_Init(
+                handle_,
+                config.rs485_de_polarity,
+                config.rs485_assertion_time,
+                config.rs485_deassertion_time
+            );
+        }
+
+        return HAL_UART_Init(handle_);
+    }
+
+    HAL_StatusTypeDef configure_uart(
+        uint32_t baud_rate,
+        bool swap_rx_tx = false
+    ) {
+        LineConfig config{};
+        config.baud_rate = baud_rate;
+        config.physical_mode = PhysicalMode::Uart;
+        config.swap_rx_tx = swap_rx_tx;
+        return configure(config);
+    }
+
+    HAL_StatusTypeDef configure_rs485(
+        uint32_t baud_rate,
+        bool swap_rx_tx = false,
+        uint32_t de_polarity = UART_DE_POLARITY_HIGH,
+        uint32_t assertion_time = 0,
+        uint32_t deassertion_time = 0
+    ) {
+        LineConfig config{};
+        config.baud_rate = baud_rate;
+        config.physical_mode = PhysicalMode::Rs485;
+        config.swap_rx_tx = swap_rx_tx;
+        config.rs485_de_polarity = de_polarity;
+        config.rs485_assertion_time = assertion_time;
+        config.rs485_deassertion_time = deassertion_time;
+        return configure(config);
+    }
+
     void use_dma_transmit(bool use_dma = true) {
         use_dma_transmit_ = use_dma;
     }
@@ -78,8 +158,12 @@ public:
         return use_dma_transmit_;
     }
 
+    bool dma_transmit_available() const {
+        return handle_ != nullptr && handle_->hdmatx != nullptr;
+    }
+
     void poll_tx_dma() {
-        if (use_dma_transmit_ && tx_dma_queue_enabled_) {
+        if (use_dma_transmit_ && tx_dma_queue_enabled_ && dma_transmit_available()) {
             kick_tx_dma();
         }
     }
@@ -211,7 +295,7 @@ public:
             return HAL_ERROR;
         }
 
-        if (use_dma_transmit_) {
+        if (use_dma_transmit_ && dma_transmit_available()) {
             if (tx_dma_queue_enabled_) {
                 const bool queued = tx_enqueue_all(data, size);
                 kick_tx_dma();
@@ -279,7 +363,7 @@ public:
             return HAL_OK;
         }
 
-        if (use_dma_transmit_ && tx_dma_queue_enabled_) {
+        if (use_dma_transmit_ && tx_dma_queue_enabled_ && dma_transmit_available()) {
             const auto ret = write(
                 reinterpret_cast<const uint8_t *>(buffer_.data()),
                 static_cast<uint16_t>(buf_size)
@@ -388,7 +472,56 @@ public:
         }
     }
 
-    uint16_t dma_receive_data_num() {
+    bool has_rx_error() const {
+        if (handle_ == nullptr) {
+            return false;
+        }
+
+        return
+            __HAL_UART_GET_FLAG(handle_, UART_FLAG_ORE) ||
+            __HAL_UART_GET_FLAG(handle_, UART_FLAG_NE) ||
+            __HAL_UART_GET_FLAG(handle_, UART_FLAG_FE) ||
+            __HAL_UART_GET_FLAG(handle_, UART_FLAG_PE);
+    }
+
+    void clear_rx_error() const {
+        if (handle_ == nullptr) {
+            return;
+        }
+
+        __HAL_UART_CLEAR_FLAG(
+            handle_,
+            UART_CLEAR_OREF |
+            UART_CLEAR_NEF |
+            UART_CLEAR_PEF |
+            UART_CLEAR_FEF
+        );
+    }
+
+    HAL_StatusTypeDef restart_receive_dma() {
+        if (handle_ == nullptr || data_p_ == nullptr || data_size_ <= 0) {
+            return HAL_ERROR;
+        }
+
+        (void)HAL_UART_AbortReceive(handle_);
+        clear_rx_error();
+        start_receive_dma(data_p_, data_size_, false);
+        return HAL_OK;
+    }
+
+    bool restart_receive_dma_if_error() {
+        if (!has_rx_error()) {
+            return false;
+        }
+
+        return restart_receive_dma() == HAL_OK;
+    }
+
+    uint16_t dma_receive_data_num() const {
+        if (handle_ == nullptr || handle_->hdmarx == nullptr || data_size_ <= 0) {
+            return 0;
+        }
+
         int16_t index = data_size_ - __HAL_DMA_GET_COUNTER(handle_->hdmarx);
         int16_t remain_data = index - index_read_;
         return (remain_data < 0) ? remain_data + data_size_ : remain_data;
@@ -408,6 +541,23 @@ public:
         }
 
         return read_data;
+    }
+
+    size_t read_dma(uint8_t *dst, size_t max_len) {
+        if (dst == nullptr || max_len == 0) {
+            return 0;
+        }
+
+        const size_t read_size = std::min(
+            max_len,
+            static_cast<size_t>(dma_receive_data_num())
+        );
+
+        for (size_t i = 0; i < read_size; i++) {
+            dst[i] = dma_receive_data();
+        }
+
+        return read_size;
     }
 
     // HAL_UART_TxCpltCallback から呼ぶ
@@ -559,6 +709,7 @@ private:
     void kick_tx_dma() {
         if (
             handle_ == nullptr ||
+            handle_->hdmatx == nullptr ||
             tx_queue_ == nullptr ||
             tx_queue_capacity_ < 2 ||
             !tx_dma_queue_enabled_
