@@ -15,6 +15,10 @@
 #include "../misc/callback.hpp"
 
 namespace stm32_library::stm32_peripherals {
+static constexpr uint32_t CanSffMask = 0x000007FFU;
+static constexpr uint32_t CanEffMask = 0x1FFFFFFFU;
+static constexpr uint32_t CanEffFlag = 0x80000000U;
+
 struct CanMessage {
   uint32_t id;
   std::array<uint8_t, 8> data;

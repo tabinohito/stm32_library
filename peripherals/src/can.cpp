@@ -77,8 +77,18 @@ HAL_StatusTypeDef stm32_library::stm32_peripherals::Can::restart(
 // CAN送信
 HAL_StatusTypeDef stm32_library::stm32_peripherals::Can::write(uint32_t id, uint8_t *data, uint32_t size, bool blocking) {
   CAN_TxHeaderTypeDef tx_header;
-  tx_header.StdId = id;
-  tx_header.IDE = CAN_ID_STD;
+  const bool is_extended = ((id & CanEffFlag) != 0U) || ((id & ~CanEffFlag) > CanSffMask);
+
+  if (is_extended) {
+    tx_header.StdId = 0;
+    tx_header.ExtId = id & CanEffMask;
+    tx_header.IDE = CAN_ID_EXT;
+  } else {
+    tx_header.StdId = id & CanSffMask;
+    tx_header.ExtId = 0;
+    tx_header.IDE = CAN_ID_STD;
+  }
+
   tx_header.RTR = CAN_RTR_DATA;
   tx_header.DLC = size > 8 ? 8 : size;
   tx_header.TransmitGlobalTime = DISABLE;
@@ -98,7 +108,11 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
   stm32_library::stm32_peripherals::CanMessage msg;
 
   if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rx_header, msg.data.data()) == HAL_OK) {
-    msg.id = rx_header.StdId;
+    if (rx_header.IDE == CAN_ID_EXT) {
+      msg.id = CanEffFlag | (rx_header.ExtId & CanEffMask);
+    } else {
+      msg.id = rx_header.StdId & CanSffMask;
+    }
     msg.size = rx_header.DLC;
     callback::callback<Can::CallbackFnType>(reinterpret_cast<intptr_t>(hcan), msg);
   }
@@ -140,8 +154,10 @@ stm32_library::stm32_peripherals::Can::Can(CanHandleType *handle, uint32_t filte
 // FDCAN送信
 HAL_StatusTypeDef stm32_library::stm32_peripherals::Can::write(uint32_t id, uint8_t *data, uint32_t size, bool blocking) {
   FDCAN_TxHeaderTypeDef tx_header;
-  tx_header.Identifier = id;
-  tx_header.IdType = FDCAN_STANDARD_ID;
+  const bool is_extended = ((id & CanEffFlag) != 0U) || ((id & ~CanEffFlag) > CanSffMask);
+
+  tx_header.Identifier = is_extended ? (id & CanEffMask) : (id & CanSffMask);
+  tx_header.IdType = is_extended ? FDCAN_EXTENDED_ID : FDCAN_STANDARD_ID;
   tx_header.TxFrameType = FDCAN_DATA_FRAME;
   tx_header.DataLength = (size > 8 ? 8 : size) << 16;
   tx_header.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
@@ -164,7 +180,11 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
   stm32_library::stm32_peripherals::CanMessage msg;
 
   if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &rx_header, msg.data.data()) == HAL_OK) {
-    msg.id = rx_header.Identifier;
+    if (rx_header.IdType == FDCAN_EXTENDED_ID) {
+      msg.id = CanEffFlag | (rx_header.Identifier & CanEffMask);
+    } else {
+      msg.id = rx_header.Identifier & CanSffMask;
+    }
     msg.size = rx_header.DataLength >> 16;
     callback::callback<Can::CallbackFnType>(reinterpret_cast<intptr_t>(hfdcan), msg);
   }
