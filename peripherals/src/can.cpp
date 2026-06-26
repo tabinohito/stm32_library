@@ -6,7 +6,7 @@ stm32_library::stm32_peripherals::Can::Can(CanHandleType *handle, uint32_t filte
     : handle_(handle) {
   if (handle_->State == HAL_CAN_STATE_READY) {
     if (start(filter_id, filter_mask) != HAL_OK) {
-      Error_Handler();
+      return;
     }
   }
 }
