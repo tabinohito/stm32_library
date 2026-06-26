@@ -38,6 +38,7 @@ struct UdpDatagram {
     uint16_t remote_port = 0;
 
     size_t size = 0;
+    uint32_t debug_enqueue_cycle = 0;
 
     // 実データはQueue側のSlotが持つ
     uint8_t* data = nullptr;
@@ -72,6 +73,7 @@ public:
         ip_addr_t remote_ip{};
         uint16_t remote_port = 0;
         size_t size = 0;
+        uint32_t debug_enqueue_cycle = 0;
         std::array<uint8_t, MaxPayloadSize> payload{};
     };
 
@@ -154,6 +156,7 @@ public:
         slot.remote_ip = remote_ip;
         slot.remote_port = remote_port;
         slot.size = size;
+        slot.debug_enqueue_cycle = DWT->CYCCNT;
 
         if (size > 0) {
             std::memcpy(slot.payload.data(), data, size);
@@ -192,6 +195,7 @@ public:
         out.remote_ip = slot.remote_ip;
         out.remote_port = slot.remote_port;
         out.size = slot.size;
+        out.debug_enqueue_cycle = slot.debug_enqueue_cycle;
         out.data = slot.payload.data();
 
         memory_barrier();
@@ -290,6 +294,7 @@ public:
         slot.remote_ip = remote_ip;
         slot.remote_port = remote_port;
         slot.size = p->tot_len;
+        slot.debug_enqueue_cycle = DWT->CYCCNT;
 
         if (slot.size > 0) {
             pbuf_copy_partial(

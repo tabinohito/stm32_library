@@ -164,6 +164,41 @@ public:
         return err == ERR_OK;
     }
 
+    bool write_reference(
+        const uint8_t* data,
+        size_t size,
+        const ip_addr_t* dest_ip,
+        uint16_t dest_port
+    ) {
+        if (pcb_ == nullptr || data == nullptr || dest_ip == nullptr) {
+            return false;
+        }
+
+        if (size == 0) {
+            return true;
+        }
+
+        if (size > UINT16_MAX) {
+            return false;
+        }
+
+        pbuf* p = pbuf_alloc_reference(
+            const_cast<uint8_t*>(data),
+            static_cast<u16_t>(size),
+            PBUF_REF
+        );
+
+        if (p == nullptr) {
+            return false;
+        }
+
+        const err_t err = udp_sendto(pcb_, p, dest_ip, dest_port);
+
+        pbuf_free(p);
+
+        return err == ERR_OK;
+    }
+
     bool write(
         const char* data,
         size_t size,

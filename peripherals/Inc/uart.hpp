@@ -51,6 +51,9 @@ private:
     volatile uint32_t tx_dma_complete_count_ = 0;
     volatile uint32_t tx_dma_error_count_ = 0;
     volatile uint32_t tx_dma_busy_count_ = 0;
+    volatile uint32_t rx_error_count_ = 0;
+    volatile uint32_t rx_dma_restart_count_ = 0;
+    volatile bool rx_dma_restart_pending_ = false;
 
 public:
     using CallbackFnType = void();
@@ -168,6 +171,30 @@ public:
         }
     }
 
+    void poll_rx_dma() {
+        if (handle_ == nullptr || data_p_ == nullptr || data_size_ <= 0) {
+            return;
+        }
+
+        if (rx_dma_restart_pending_) {
+            rx_dma_restart_pending_ = false;
+
+            if (restart_receive_dma() == HAL_OK) {
+                inc_u32(rx_dma_restart_count_);
+            }
+
+            return;
+        }
+
+        if (has_rx_error()) {
+            inc_u32(rx_error_count_);
+
+            if (restart_receive_dma() == HAL_OK) {
+                inc_u32(rx_dma_restart_count_);
+            }
+        }
+    }
+
     // -------------------------------------------------------------------------
     // TX DMA queue mode
     // -------------------------------------------------------------------------
@@ -256,6 +283,14 @@ public:
             return 0;
         }
         return static_cast<uint32_t>(tx_queue_capacity_ - 1);
+    }
+
+    uint32_t rx_error_count() const {
+        return rx_error_count_;
+    }
+
+    uint32_t rx_dma_restart_count() const {
+        return rx_dma_restart_count_;
     }
 
     void clear_tx_queue() {
@@ -505,8 +540,13 @@ public:
 
         (void)HAL_UART_AbortReceive(handle_);
         clear_rx_error();
-        start_receive_dma(data_p_, data_size_, false);
-        return HAL_OK;
+        index_read_ = 0;
+
+        return HAL_UART_Receive_DMA(
+            handle_,
+            data_p_,
+            static_cast<uint16_t>(data_size_)
+        );
     }
 
     bool restart_receive_dma_if_error() {
@@ -589,6 +629,22 @@ public:
 
         if (uart != nullptr) {
             uart->on_tx_complete();
+        }
+    }
+
+    void on_error() {
+        inc_u32(rx_error_count_);
+
+        if (data_p_ != nullptr && data_size_ > 0) {
+            rx_dma_restart_pending_ = true;
+        }
+    }
+
+    static void error_callback(UART_HandleTypeDef *huart) {
+        Uart *uart = find_instance(huart);
+
+        if (uart != nullptr) {
+            uart->on_error();
         }
     }
 

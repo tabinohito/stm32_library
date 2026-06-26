@@ -12,4 +12,9 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
   Uart::tx_complete_callback(huart);
 }
 
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
+  using namespace stm32_library::stm32_peripherals;
+  Uart::error_callback(huart);
+}
+
 #endif
