@@ -5,36 +5,73 @@
 stm32_library::stm32_peripherals::Can::Can(CanHandleType *handle, uint32_t filter_id, uint32_t filter_mask)
     : handle_(handle) {
   if (handle_->State == HAL_CAN_STATE_READY) {
-    CAN_FilterTypeDef filter;
-    filter.FilterIdHigh = filter_id << 5;
-    filter.FilterIdLow = filter_id << 21;
-    filter.FilterMaskIdHigh = filter_mask << 5;
-    filter.FilterMaskIdLow = filter_mask << 21;
-    filter.FilterFIFOAssignment = CAN_FILTER_FIFO0;
-    filter.FilterBank = 0;
-
-#if defined(CAN2)
-    if (handle_->Instance == CAN2)
-      filter.FilterBank = 14;
-#endif
-
-    filter.FilterMode = CAN_FILTERMODE_IDMASK;
-    filter.FilterScale = CAN_FILTERSCALE_32BIT;
-    filter.FilterActivation = ENABLE;
-    filter.SlaveStartFilterBank = 14;
-
-    if (HAL_CAN_ConfigFilter(handle_, &filter) != HAL_OK) {
-      Error_Handler();
-    }
-
-    if (HAL_CAN_ActivateNotification(handle_, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK) {
-      Error_Handler();
-    }
-
-    if (HAL_CAN_Start(handle_) != HAL_OK) {
+    if (start(filter_id, filter_mask) != HAL_OK) {
       Error_Handler();
     }
   }
+}
+
+HAL_StatusTypeDef stm32_library::stm32_peripherals::Can::start(uint32_t filter_id, uint32_t filter_mask) {
+  CAN_FilterTypeDef filter;
+  filter.FilterIdHigh = filter_id << 5;
+  filter.FilterIdLow = filter_id << 21;
+  filter.FilterMaskIdHigh = filter_mask << 5;
+  filter.FilterMaskIdLow = filter_mask << 21;
+  filter.FilterFIFOAssignment = CAN_FILTER_FIFO0;
+  filter.FilterBank = 0;
+
+#if defined(CAN2)
+  if (handle_->Instance == CAN2)
+    filter.FilterBank = 14;
+#endif
+
+  filter.FilterMode = CAN_FILTERMODE_IDMASK;
+  filter.FilterScale = CAN_FILTERSCALE_32BIT;
+  filter.FilterActivation = ENABLE;
+  filter.SlaveStartFilterBank = 14;
+
+  HAL_StatusTypeDef status = HAL_CAN_ConfigFilter(handle_, &filter);
+  if (status != HAL_OK) {
+    return status;
+  }
+
+  status = HAL_CAN_ActivateNotification(handle_, CAN_IT_RX_FIFO0_MSG_PENDING);
+  if (status != HAL_OK) {
+    return status;
+  }
+
+  return HAL_CAN_Start(handle_);
+}
+
+HAL_StatusTypeDef stm32_library::stm32_peripherals::Can::restart(
+    uint32_t mode,
+    uint32_t filter_id,
+    uint32_t filter_mask
+) {
+  if (handle_ == nullptr) {
+    return HAL_ERROR;
+  }
+
+  if (handle_->State == HAL_CAN_STATE_LISTENING) {
+    const HAL_StatusTypeDef status = HAL_CAN_Stop(handle_);
+    if (status != HAL_OK) {
+      return status;
+    }
+  }
+
+  HAL_StatusTypeDef status = HAL_CAN_DeInit(handle_);
+  if (status != HAL_OK) {
+    return status;
+  }
+
+  handle_->Init.Mode = mode;
+
+  status = HAL_CAN_Init(handle_);
+  if (status != HAL_OK) {
+    return status;
+  }
+
+  return start(filter_id, filter_mask);
 }
 
 // CAN送信

@@ -54,6 +54,11 @@ public:
 
   Can(CanHandleType *handle) : Can(handle, 0, 0) {}
 
+#if defined(HAL_CAN_MODULE_ENABLED)
+  HAL_StatusTypeDef start(uint32_t filter_id = 0, uint32_t filter_mask = 0);
+  HAL_StatusTypeDef restart(uint32_t mode, uint32_t filter_id = 0, uint32_t filter_mask = 0);
+#endif
+
   // CAN送信
   HAL_StatusTypeDef write(uint32_t id, uint8_t *data, uint32_t size, bool blocking = false);
 
