@@ -104,6 +104,123 @@ void INA237::setShunt(float shunt_res, float max_current) {
   _updateShuntCalRegister();
 }
 
+bool INA237::startReadDma(DmaMeasurement measurement) {
+  if (dma_active_) {
+    return false;
+  }
+
+  uint8_t reg = 0;
+  size_t length = 2;
+
+  switch (measurement) {
+  case DmaMeasurement::Current:
+    reg = INA2XX_REG_CURRENT;
+    break;
+  case DmaMeasurement::BusVoltage:
+    reg = INA2XX_REG_VBUS;
+    break;
+  case DmaMeasurement::ShuntVoltage:
+    reg = INA2XX_REG_VSHUNT;
+    break;
+  case DmaMeasurement::Power:
+    reg = INA2XX_REG_POWER;
+    length = 3;
+    break;
+  case DmaMeasurement::DieTemp:
+    reg = INA2XX_REG_DIETEMP;
+    break;
+  }
+
+  dma_measurement_ = measurement;
+  dma_buffer_[0] = 0;
+  dma_buffer_[1] = 0;
+  dma_buffer_[2] = 0;
+
+  if (
+      i2c_.start_read_reg_dma(
+          i2c_addr_,
+          reg,
+          dma_buffer_,
+          length
+      ) != HAL_OK
+  ) {
+    return false;
+  }
+
+  dma_active_ = true;
+  return true;
+}
+
+INA237::DmaStatus INA237::pollReadDma(float& value) {
+  if (!dma_active_) {
+    return DmaStatus::Idle;
+  }
+
+  const auto status = i2c_.poll_dma();
+  if (status == stm32_peripherals::I2c::DmaStatus::Busy) {
+    return DmaStatus::Busy;
+  }
+
+  dma_active_ = false;
+
+  if (status != stm32_peripherals::I2c::DmaStatus::Complete) {
+    value = 0.0f;
+    return DmaStatus::Error;
+  }
+
+  const uint16_t raw16 =
+      (static_cast<uint16_t>(dma_buffer_[0]) << 8) |
+      static_cast<uint16_t>(dma_buffer_[1]);
+
+  switch (dma_measurement_) {
+  case DmaMeasurement::Current:
+    value =
+        static_cast<float>(static_cast<int16_t>(raw16)) *
+        _current_lsb *
+        1000.0f;
+    break;
+
+  case DmaMeasurement::BusVoltage:
+    value = static_cast<float>(raw16) * 3.125f / 1000.0f;
+    break;
+
+  case DmaMeasurement::ShuntVoltage: {
+    const float scale_uv = _adc_range != 0U ? 1.25f : 5.0f;
+    value =
+        static_cast<float>(static_cast<int16_t>(raw16)) *
+        scale_uv /
+        1000000.0f;
+    break;
+  }
+
+  case DmaMeasurement::Power: {
+    const uint32_t raw24 =
+        (static_cast<uint32_t>(dma_buffer_[0]) << 16) |
+        (static_cast<uint32_t>(dma_buffer_[1]) << 8) |
+        static_cast<uint32_t>(dma_buffer_[2]);
+    value =
+        static_cast<float>(raw24) *
+        0.2f *
+        _current_lsb *
+        1000.0f;
+    break;
+  }
+
+  case DmaMeasurement::DieTemp:
+    value =
+        static_cast<float>(static_cast<int16_t>(raw16) >> 4) *
+        125.0f /
+        1000.0f;
+    break;
+  }
+
+  return DmaStatus::Complete;
+}
+
+bool INA237::readDmaBusy() const {
+  return dma_active_;
+}
+
 } // namespace stm32_library::stm32_modules
 
 #endif

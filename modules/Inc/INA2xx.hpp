@@ -156,6 +156,7 @@ class INA2xx {
 		float _shunt_res = 0.1f;
 		float _current_lsb = 0.0f;
 		uint16_t _device_id = 0;
+		uint8_t _adc_range = 0;
 };
 
 } // namespace stm32_library::stm32_modules

@@ -55,11 +55,13 @@ void INA2xx::setShunt(float shunt_res, float max_current) {
 
 void INA2xx::setADCRange(uint8_t adc_range) {
   writeBits16(INA2XX_REG_CONFIG, 1, 4, adc_range & 0x01);
+  _adc_range = adc_range & 0x01;
   _updateShuntCalRegister();
 }
 
 uint8_t INA2xx::getADCRange(void) {
-  return static_cast<uint8_t>(readBits16(INA2XX_REG_CONFIG, 1, 4));
+  _adc_range = static_cast<uint8_t>(readBits16(INA2XX_REG_CONFIG, 1, 4));
+  return _adc_range;
 }
 
 float INA2xx::readDieTemp(void) {

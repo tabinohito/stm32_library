@@ -83,6 +83,60 @@ uint16_t MCP320x<T>::getAnalogRes() const {
 }
 
 template <typename T>
+bool MCP320x<T>::startReadDma(Channel ch) {
+  if (dma_active_) {
+    return false;
+  }
+
+  const auto cmd = createCmd(ch);
+  dma_tx_[0] = cmd.hiByte;
+  dma_tx_[1] = cmd.loByte;
+  dma_tx_[2] = 0;
+  dma_rx_[0] = 0;
+  dma_rx_[1] = 0;
+  dma_rx_[2] = 0;
+
+  cs_.write(false);
+  if (spi_.start_transfer_dma(dma_tx_, dma_rx_, sizeof(dma_tx_)) != HAL_OK) {
+    cs_.write(true);
+    return false;
+  }
+
+  dma_active_ = true;
+  return true;
+}
+
+template <typename T>
+typename MCP320x<T>::DmaStatus MCP320x<T>::pollReadDma(uint16_t& value) {
+  if (!dma_active_) {
+    return DmaStatus::Idle;
+  }
+
+  const auto status = spi_.poll_dma();
+  if (status == stm32_peripherals::Spi::DmaStatus::Busy) {
+    return DmaStatus::Busy;
+  }
+
+  cs_.write(true);
+  dma_active_ = false;
+
+  if (status != stm32_peripherals::Spi::DmaStatus::Complete) {
+    value = 0;
+    return DmaStatus::Error;
+  }
+
+  value =
+      (static_cast<uint16_t>(dma_rx_[1] & 0x0F) << 8) |
+      static_cast<uint16_t>(dma_rx_[2]);
+  return DmaStatus::Complete;
+}
+
+template <typename T>
+bool MCP320x<T>::readDmaBusy() const {
+  return dma_active_;
+}
+
+template <typename T>
 uint16_t MCP320x<T>::getSplDelay(Channel ch, uint32_t splFreq) {
   uint32_t splTime = div_round(1000000000, splFreq);
 

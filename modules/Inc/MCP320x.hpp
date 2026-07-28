@@ -75,6 +75,13 @@ public:
 
   using Channel = ChannelType;
 
+  enum class DmaStatus : uint8_t {
+    Idle,
+    Busy,
+    Complete,
+    Error,
+  };
+
   MCP320x(uint16_t vref, stm32_peripherals::DigitalOut &cs,
           stm32_peripherals::Spi &spi);
 
@@ -137,6 +144,10 @@ public:
   uint16_t getVref() const;
   uint16_t getAnalogRes() const;
 
+  bool startReadDma(Channel ch);
+  DmaStatus pollReadDma(uint16_t& value);
+  bool readDmaBusy() const;
+
 private:
   union SpiData {
     uint16_t value;
@@ -177,6 +188,9 @@ private:
   uint32_t mSplSpeed;
   stm32_peripherals::Spi &spi_;
   stm32_peripherals::DigitalOut &cs_;
+  uint8_t dma_tx_[3] = {};
+  uint8_t dma_rx_[3] = {};
+  bool dma_active_ = false;
 };
 
 using MCP3201 = MCP320x<MCP320xTypes::MCP3201::Channel>;
