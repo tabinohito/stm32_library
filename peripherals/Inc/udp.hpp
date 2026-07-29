@@ -69,14 +69,9 @@ public:
     );
 
     explicit UdpSocket(uint16_t local_port)
-        : local_port_(local_port)
+        : local_port_(0)
     {
-        pcb_ = udp_new();
-
-        if (pcb_ != nullptr) {
-            udp_bind(pcb_, IP_ADDR_ANY, local_port_);
-            udp_recv(pcb_, UdpSocket::recv_callback_static, this);
-        }
+        (void)rebind(local_port);
     }
 
     ~UdpSocket() {
@@ -92,6 +87,38 @@ public:
 
     uint16_t local_port() const {
         return local_port_;
+    }
+
+    bool rebind(uint16_t local_port) {
+        if (local_port == 0) {
+            return false;
+        }
+
+        if (pcb_ != nullptr && local_port_ == local_port) {
+            return true;
+        }
+
+        udp_pcb* replacement = udp_new();
+        if (replacement == nullptr) {
+            return false;
+        }
+
+        const err_t bind_result =
+            udp_bind(replacement, IP_ADDR_ANY, local_port);
+        if (bind_result != ERR_OK) {
+            udp_remove(replacement);
+            return false;
+        }
+
+        udp_recv(replacement, UdpSocket::recv_callback_static, this);
+
+        if (pcb_ != nullptr) {
+            udp_remove(pcb_);
+        }
+
+        pcb_ = replacement;
+        local_port_ = local_port;
+        return true;
     }
 
     void attach(std::function<CallbackFnType>&& fn, uint8_t priority = 100) {
