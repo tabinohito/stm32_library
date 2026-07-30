@@ -8,8 +8,8 @@
 #include <cstdint>
 #include <algorithm>
 
-#include "realtime_bridge/components/sensor_types.hpp"
-#include "realtime_bridge/protocol/acyclic_byte_buffer.hpp"
+#include "realtime_bridge_interface/components/sensor_types.hpp"
+#include "realtime_bridge_interface/protocol/acyclic_byte_buffer.hpp"
 
 namespace stm32_library::boards::prindog {
 
@@ -33,7 +33,7 @@ struct AcyclicMap {
 };
 
 using PrindogAcyclicBuffer =
-    realtime_bridge::protocol::AcyclicByteBuffer<AcyclicMap::size>;
+    realtime_bridge_interface::protocol::AcyclicByteBuffer<AcyclicMap::size>;
 
 inline uint16_t clamp_u16_from_float(float value) {
     if (value <= 0.0f) {
@@ -61,7 +61,7 @@ inline int16_t clamp_i16_from_float(float value) {
 
 template <size_t ChannelNum>
 inline void update_acyclic_buffer_from_sensor_snapshot(
-    const realtime_bridge::components::SensorSnapshot<ChannelNum>& snapshot,
+    const realtime_bridge_interface::components::SensorSnapshot<ChannelNum>& snapshot,
     PrindogAcyclicBuffer& buffer
 ) {
     static_assert(ChannelNum >= 3, "Prindog requires at least 3 sensor channels");

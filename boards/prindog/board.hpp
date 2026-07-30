@@ -15,7 +15,7 @@
 #include "stm32_library/boards/prindog/ports.hpp"
 #include "stm32_library/boards/prindog/profiles.hpp"
 #include "stm32_library/boards/prindog/sensor_service.hpp"
-#include "realtime_bridge/components/sensor_service.hpp"
+#include "realtime_bridge_interface/components/sensor_service.hpp"
 #include "stm32_library/boards/prindog/hardware.hpp"
 
 namespace stm32_library::boards::prindog {
@@ -56,7 +56,7 @@ public:
           acyclic_buffer(),
           sensor_service_(modules, acyclic_buffer),
           sensors_(
-              realtime_bridge::components::SensorServiceRef::from(
+              realtime_bridge_interface::components::SensorServiceRef::from(
                   sensor_service_
               )
           )
@@ -101,7 +101,7 @@ public:
 
 private:
     PrindogSensorService<Config, ChannelNum> sensor_service_;
-    realtime_bridge::components::SensorServiceRef sensors_;
+    realtime_bridge_interface::components::SensorServiceRef sensors_;
 };
 
 using UsbDebugBoard = Board<BuildMode::UsbDebug>;

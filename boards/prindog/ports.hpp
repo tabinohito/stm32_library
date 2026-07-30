@@ -3,17 +3,17 @@
 #include <array>
 
 #include "stm32_library/boards/prindog/profiles.hpp"
-#include "realtime_bridge/adapters/stm32/common/comm_ports.hpp"
-#include "realtime_bridge/components/comm_port_ref.hpp"
+#include "realtime_bridge_interface/adapters/stm32/common/comm_ports.hpp"
+#include "realtime_bridge_interface/components/comm_port_ref.hpp"
 #include "stm32_library/boards/prindog/hardware.hpp"
 
 namespace stm32_library::boards::prindog {
 
-using realtime_bridge::components::BasicCommPortRegistry;
-using realtime_bridge::adapters::stm32::common::CanCommPort;
-using realtime_bridge::components::CommPortRef;
-using realtime_bridge::components::SafetyPins;
-using realtime_bridge::adapters::stm32::common::UartCommPort;
+using realtime_bridge_interface::components::BasicCommPortRegistry;
+using realtime_bridge_interface::adapters::stm32::common::CanCommPort;
+using realtime_bridge_interface::components::CommPortRef;
+using realtime_bridge_interface::components::SafetyPins;
+using realtime_bridge_interface::adapters::stm32::common::UartCommPort;
 
 template <BuildMode Mode>
 struct CommPorts;

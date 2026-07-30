@@ -7,7 +7,7 @@
 #include <cstring>
 
 #include "main.h"
-#include "realtime_bridge/config/bridge_runtime_config.hpp"
+#include "realtime_bridge_interface/config/bridge_runtime_config.hpp"
 
 extern "C" {
 #include "lwip.h"
@@ -21,7 +21,7 @@ namespace stm32_library::boards::prindog {
 
 struct PrindogNetworkConfig {
     using NetworkSettings =
-        realtime_bridge::config::NetworkSettings;
+        realtime_bridge_interface::config::NetworkSettings;
 
     static constexpr uint8_t Ip0 = STM32_ETH_BRIDGE_IP0;
     static constexpr uint8_t Ip1 = STM32_ETH_BRIDGE_IP1;

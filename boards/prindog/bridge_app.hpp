@@ -1,14 +1,14 @@
 #pragma once
 
-#ifndef REALTIME_BRIDGE_ENABLE_DEBUG_COUNTERS
-#define REALTIME_BRIDGE_ENABLE_DEBUG_COUNTERS 1
+#ifndef REALTIME_BRIDGE_INTERFACE_ENABLE_DEBUG_COUNTERS
+#define REALTIME_BRIDGE_INTERFACE_ENABLE_DEBUG_COUNTERS 1
 #endif
 
 #include "stm32_library/boards/prindog/hardware.hpp"
 #include "stm32_library/boards/prindog/board.hpp"
-#include "realtime_bridge/adapters/stm32/f7/flash_config_store.hpp"
+#include "realtime_bridge_interface/adapters/stm32/f7/flash_config_store.hpp"
 #include "stm32_library/boards/prindog/network.hpp"
-#include "realtime_bridge/adapters/stm32/f7/udp_realtime_bridge_runner.hpp"
+#include "realtime_bridge_interface/adapters/stm32/f7/udp_realtime_bridge_runner.hpp"
 
 namespace stm32_library::boards::prindog {
 
@@ -55,14 +55,14 @@ struct BridgeRunModeTraits<BridgeRunMode::CanBridge> {
     using ActiveBridgeBoard =
         typename BridgeRunModeTraits<ActiveBridgeMode>::Board;
 
-    static realtime_bridge::adapters::stm32::f7::FlashConfigStore
+    static realtime_bridge_interface::adapters::stm32::f7::FlashConfigStore
         config_store;
 
-    static realtime_bridge::adapters::stm32::f7::
+    static realtime_bridge_interface::adapters::stm32::f7::
         UdpRealtimeBridgeRunner<
         ActiveBridgeBoard,
         PrindogNetworkConfig,
-        realtime_bridge::adapters::stm32::f7::FlashConfigStore,
+        realtime_bridge_interface::adapters::stm32::f7::FlashConfigStore,
         Peripherals,
         Modules
     > runner{

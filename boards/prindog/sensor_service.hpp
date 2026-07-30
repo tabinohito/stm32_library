@@ -3,7 +3,7 @@
 #include <array>
 #include <cstddef>
 
-#include "realtime_bridge/adapters/stm32/common/sensor_hub.hpp"
+#include "realtime_bridge_interface/adapters/stm32/common/sensor_hub.hpp"
 #include "stm32_library/boards/prindog/acyclic.hpp"
 
 namespace stm32_library::boards::prindog {
@@ -20,7 +20,7 @@ public:
     using MuxChannel =
         stm32_library::stm32_modules::MCP320xTypes::MCP3204::Channel;
     using Hub =
-        realtime_bridge::adapters::stm32::common::
+        realtime_bridge_interface::adapters::stm32::common::
             SensorHub<ChannelNum>;
 
     PrindogSensorService(

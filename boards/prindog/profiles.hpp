@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "realtime_bridge/protocol/message_route_table.hpp"
+#include "realtime_bridge_interface/protocol/message_route_table.hpp"
 
 namespace stm32_library::boards::prindog {
 
@@ -97,9 +97,9 @@ struct BoardConfig<BuildMode::CanBridge> {
 template <BuildMode Mode>
 struct Routes {
     using Config = BoardConfig<Mode>;
-    using MessageRoute = realtime_bridge::protocol::MessageRoute;
+    using MessageRoute = realtime_bridge_interface::protocol::MessageRoute;
     using Table =
-        realtime_bridge::protocol::MessageRouteTable<Config::MaxRouteNum>;
+        realtime_bridge_interface::protocol::MessageRouteTable<Config::MaxRouteNum>;
 
     Table table;
 
