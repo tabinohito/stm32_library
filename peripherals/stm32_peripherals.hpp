@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Inc/can.hpp"
+#include "Inc/cycle_counter.hpp"
 #include "Inc/digital_in.hpp"
 #include "Inc/digital_out.hpp"
 #include "Inc/dma_analog_in.hpp"

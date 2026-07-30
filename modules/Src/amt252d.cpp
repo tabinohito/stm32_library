@@ -8,8 +8,18 @@ namespace stm32_library::stm32_modules {
 			stm32_peripherals::DigitalOut &cs,
 			stm32_peripherals::Spi &spi,
 			bool is_reverse)
-	  : cs_(cs),spi_(spi) {
+	  : Amt252d(cs, spi, ReadMode::LegacyNop, is_reverse) {
+	}
+
+	Amt252d::Amt252d(
+			stm32_peripherals::DigitalOut &cs,
+			stm32_peripherals::Spi &spi,
+			ReadMode read_mode,
+			bool is_reverse)
+	  : spi_(spi), cs_(cs) {
+		(void)is_reverse;
 		cs_ = 1;
+		set_read_mode(read_mode);
 	}
 
 	bool Amt252d::checksum(uint8_t high_byte, uint8_t low_byte) {
@@ -60,18 +70,7 @@ namespace stm32_library::stm32_modules {
 	  return false;
 	}
 
-	bool Amt252d::read_position_turn() {
-	  uint8_t tx_data[4] = {0x00, 0xA0, 0x00, 0x00}; // Multi-turn position read command
-	  uint8_t rx_data[4] = {};
-
-	  // ===== Step 1: 送信コマンド =====
-	  cs_ = 0;
-	  for(size_t i = 0; i < sizeof(rx_data);i++){
-		  rx_data[i] = spi_.write(tx_data[i]);
-		  for (volatile int i = 0; i < 1000; ++i) __NOP();
-	  }
-	  cs_ = 1;
-
+	bool Amt252d::decode_position_turn(const uint8_t (&rx_data)[4]) {
 	  bool ok = true;
 
 	  if (checksum(rx_data[0], rx_data[1])) {
@@ -83,14 +82,106 @@ namespace stm32_library::stm32_modules {
 
 	  if (checksum(rx_data[2], rx_data[3])) {
 		  uint16_t raw_turn = ((uint16_t)(rx_data[2] & 0x3F) << 8) | rx_data[3];
-		  int16_t tmp = signed14(raw_turn);
-		  turn = tmp;  // OK: 更新
+		  turn = signed14(raw_turn);
 	  } else {
-		  // 更新しない（前回値を保持）
 		  ok = false;
 	  }
 
 	  return ok;
+	}
+
+	bool Amt252d::read_position_turn_legacy_nop() {
+	  uint8_t tx_data[4] = {0x00, 0xA0, 0x00, 0x00}; // Multi-turn position read command
+	  uint8_t rx_data[4] = {};
+
+	  cs_ = 0;
+	  for(size_t i = 0; i < sizeof(rx_data);i++){
+		  rx_data[i] = spi_.write(tx_data[i]);
+		  for (volatile int i = 0; i < 1000; ++i) __NOP();
+	  }
+	  cs_ = 1;
+
+	  return decode_position_turn(rx_data);
+	}
+
+	void Amt252d::finish_timed_transfer() {
+	  using CycleCounter = stm32_peripherals::CycleCounter;
+	  CycleCounter::delay_cycles(tr_cycles_);
+	  cs_ = 1;
+	  last_cs_release_cycle_ = CycleCounter::now();
+	  has_last_cs_release_ = true;
+	}
+
+	bool Amt252d::read_position_turn_timed_register_polling() {
+	  using CycleCounter = stm32_peripherals::CycleCounter;
+
+	  if (!read_mode_ready_ || !CycleCounter::is_enabled()) {
+		  return false;
+	  }
+
+	  if (has_last_cs_release_) {
+		  CycleCounter::wait_elapsed(last_cs_release_cycle_, tcs_cycles_);
+	  }
+
+	  constexpr uint8_t tx_data[4] = {0x00, 0xA0, 0x00, 0x00};
+	  uint8_t rx_data[4] = {};
+
+	  cs_ = 0;
+	  CycleCounter::delay_cycles(tclk_tb_cycles_);
+	  for (size_t i = 0; i < sizeof(rx_data); ++i) {
+		  if (!spi_.transfer_byte_register_polling(
+		          tx_data[i], rx_data[i], spi_timeout_cycles_)) {
+			  finish_timed_transfer();
+			  return false;
+		  }
+		  if (i + 1U < sizeof(rx_data)) {
+			  CycleCounter::delay_cycles(tclk_tb_cycles_);
+		  }
+	  }
+	  finish_timed_transfer();
+
+	  return decode_position_turn(rx_data);
+	}
+
+	bool Amt252d::read_position_turn() {
+	  switch (read_mode_) {
+	  case ReadMode::LegacyNop:
+		  return read_position_turn_legacy_nop();
+	  case ReadMode::TimedRegisterPolling:
+		  return read_position_turn_timed_register_polling();
+	  }
+	  return false;
+	}
+
+	bool Amt252d::set_read_mode(ReadMode read_mode) {
+	  using CycleCounter = stm32_peripherals::CycleCounter;
+
+	  read_mode_ = read_mode;
+	  has_last_cs_release_ = false;
+	  read_mode_ready_ = true;
+
+	  if (read_mode_ == ReadMode::TimedRegisterPolling) {
+		  read_mode_ready_ = CycleCounter::enable();
+		  if (read_mode_ready_) {
+			  const uint32_t cycles_per_us = CycleCounter::cycles_per_us();
+			  tclk_tb_cycles_ = (cycles_per_us * 5U + 1U) / 2U;
+			  tcs_cycles_ = cycles_per_us * 40U;
+			  tr_cycles_ = cycles_per_us * 3U;
+			  spi_timeout_cycles_ = cycles_per_us * 100U;
+			  last_cs_release_cycle_ = CycleCounter::now();
+			  has_last_cs_release_ = true;
+		  }
+	  }
+
+	  return read_mode_ready_;
+	}
+
+	Amt252d::ReadMode Amt252d::get_read_mode() const {
+	  return read_mode_;
+	}
+
+	bool Amt252d::is_read_mode_ready() const {
+	  return read_mode_ready_;
 	}
 
 	bool Amt252d::read_position(){

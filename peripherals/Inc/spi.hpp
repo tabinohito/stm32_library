@@ -4,6 +4,8 @@
 
 #ifdef HAL_SPI_MODULE_ENABLED
 
+#include "cycle_counter.hpp"
+
 namespace stm32_library::stm32_peripherals {
 class Spi {
 public:
@@ -29,6 +31,36 @@ public:
       return false;
     }
     return true;
+  }
+
+  bool transfer_byte_register_polling(uint8_t tx, uint8_t &rx,
+                                      uint32_t timeout_cycles = 0U) {
+    if (handle_ == nullptr || handle_->Instance == nullptr) {
+      return false;
+    }
+    if (handle_->State != HAL_SPI_STATE_READY || !CycleCounter::is_enabled()) {
+      return false;
+    }
+
+    if (timeout_cycles == 0U) {
+      timeout_cycles = CycleCounter::us_to_cycles(100U);
+    }
+
+    if ((handle_->Instance->CR1 & SPI_CR1_SPE) == 0U) {
+      __HAL_SPI_ENABLE(handle_);
+    }
+
+    if (!wait_for_flag(SPI_FLAG_TXE, true, timeout_cycles)) {
+      return false;
+    }
+    *reinterpret_cast<volatile uint8_t *>(&handle_->Instance->DR) = tx;
+
+    if (!wait_for_flag(SPI_FLAG_RXNE, true, timeout_cycles)) {
+      return false;
+    }
+    rx = *reinterpret_cast<volatile uint8_t *>(&handle_->Instance->DR);
+
+    return wait_for_flag(SPI_FLAG_BSY, false, timeout_cycles);
   }
 
   uint8_t write_dma(uint8_t val) {
@@ -122,6 +154,16 @@ public:
   }
 
 private:
+  bool wait_for_flag(uint32_t flag, bool expected_set, uint32_t timeout_cycles) {
+    const uint32_t started = CycleCounter::now();
+    while (((handle_->Instance->SR & flag) != 0U) != expected_set) {
+      if ((CycleCounter::now() - started) >= timeout_cycles) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   SPI_HandleTypeDef *handle_;
   bool dma_active_ = false;
 };
