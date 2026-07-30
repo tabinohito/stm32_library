@@ -59,7 +59,25 @@ public:
   Can(CanHandleType *handle) : Can(handle, 0, 0) {}
 
 #if defined(HAL_CAN_MODULE_ENABLED)
+  struct BitTimingConfig {
+    uint32_t prescaler = 1;
+    uint32_t mode = CAN_MODE_NORMAL;
+    uint32_t sync_jump_width = CAN_SJW_1TQ;
+    uint32_t time_segment1 = CAN_BS1_1TQ;
+    uint32_t time_segment2 = CAN_BS2_1TQ;
+    FunctionalState time_triggered_mode = DISABLE;
+    FunctionalState auto_bus_off = DISABLE;
+    FunctionalState auto_wakeup = DISABLE;
+    FunctionalState auto_retransmission = ENABLE;
+    FunctionalState receive_fifo_locked = DISABLE;
+    FunctionalState transmit_fifo_priority = DISABLE;
+    uint32_t filter_id = 0;
+    uint32_t filter_mask = 0;
+  };
+
   HAL_StatusTypeDef start(uint32_t filter_id = 0, uint32_t filter_mask = 0);
+  HAL_StatusTypeDef stop();
+  HAL_StatusTypeDef configure(const BitTimingConfig& config);
   HAL_StatusTypeDef restart(uint32_t mode, uint32_t filter_id = 0, uint32_t filter_mask = 0);
 #endif
 

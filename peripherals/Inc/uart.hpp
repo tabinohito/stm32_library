@@ -66,9 +66,23 @@ public:
     struct LineConfig {
         uint32_t baud_rate = 115200;
         PhysicalMode physical_mode = PhysicalMode::Uart;
+        uint32_t word_length = UART_WORDLENGTH_8B;
+        uint32_t stop_bits = UART_STOPBITS_1;
+        uint32_t parity = UART_PARITY_NONE;
+        uint32_t mode = UART_MODE_TX_RX;
+        uint32_t hardware_flow_control = UART_HWCONTROL_NONE;
+        uint32_t oversampling = UART_OVERSAMPLING_16;
+        uint32_t one_bit_sampling = UART_ONE_BIT_SAMPLE_DISABLE;
         bool swap_rx_tx = false;
         bool invert_tx = false;
         bool invert_rx = false;
+        bool data_invert = false;
+        bool overrun_disable = false;
+        bool dma_disable_on_rx_error = false;
+        bool auto_baud = false;
+        uint32_t auto_baud_mode =
+            UART_ADVFEATURE_AUTOBAUDRATE_ONSTARTBIT;
+        bool msb_first = false;
         uint32_t rs485_de_polarity = UART_DE_POLARITY_HIGH;
         uint32_t rs485_assertion_time = 0;
         uint32_t rs485_deassertion_time = 0;
@@ -90,28 +104,61 @@ public:
         return handle_;
     }
 
+    HAL_StatusTypeDef stop() {
+        return handle_ != nullptr ? HAL_UART_Abort(handle_) : HAL_ERROR;
+    }
+
     HAL_StatusTypeDef configure(const LineConfig& config) {
         if (handle_ == nullptr) {
             return HAL_ERROR;
         }
 
-        (void)HAL_UART_Abort(handle_);
+        (void)stop();
 
         handle_->Init.BaudRate = config.baud_rate;
-        handle_->Init.Mode = UART_MODE_TX_RX;
+        handle_->Init.WordLength = config.word_length;
+        handle_->Init.StopBits = config.stop_bits;
+        handle_->Init.Parity = config.parity;
+        handle_->Init.Mode = config.mode;
+        handle_->Init.HwFlowCtl = config.hardware_flow_control;
+        handle_->Init.OverSampling = config.oversampling;
+        handle_->Init.OneBitSampling = config.one_bit_sampling;
         handle_->AdvancedInit.AdvFeatureInit =
             UART_ADVFEATURE_TXINVERT_INIT |
             UART_ADVFEATURE_RXINVERT_INIT |
-            UART_ADVFEATURE_SWAP_INIT;
+            UART_ADVFEATURE_DATAINVERT_INIT |
+            UART_ADVFEATURE_SWAP_INIT |
+            UART_ADVFEATURE_RXOVERRUNDISABLE_INIT |
+            UART_ADVFEATURE_DMADISABLEONERROR_INIT |
+            UART_ADVFEATURE_AUTOBAUDRATE_INIT |
+            UART_ADVFEATURE_MSBFIRST_INIT;
         handle_->AdvancedInit.TxPinLevelInvert = config.invert_tx ?
             UART_ADVFEATURE_TXINV_ENABLE :
             UART_ADVFEATURE_TXINV_DISABLE;
         handle_->AdvancedInit.RxPinLevelInvert = config.invert_rx ?
             UART_ADVFEATURE_RXINV_ENABLE :
             UART_ADVFEATURE_RXINV_DISABLE;
+        handle_->AdvancedInit.DataInvert = config.data_invert ?
+            UART_ADVFEATURE_DATAINV_ENABLE :
+            UART_ADVFEATURE_DATAINV_DISABLE;
         handle_->AdvancedInit.Swap = config.swap_rx_tx ?
             UART_ADVFEATURE_SWAP_ENABLE :
             UART_ADVFEATURE_SWAP_DISABLE;
+        handle_->AdvancedInit.OverrunDisable =
+            config.overrun_disable ?
+                UART_ADVFEATURE_OVERRUN_DISABLE :
+                UART_ADVFEATURE_OVERRUN_ENABLE;
+        handle_->AdvancedInit.DMADisableonRxError =
+            config.dma_disable_on_rx_error ?
+                UART_ADVFEATURE_DMA_DISABLEONRXERROR :
+                UART_ADVFEATURE_DMA_ENABLEONRXERROR;
+        handle_->AdvancedInit.AutoBaudRateEnable = config.auto_baud ?
+            UART_ADVFEATURE_AUTOBAUDRATE_ENABLE :
+            UART_ADVFEATURE_AUTOBAUDRATE_DISABLE;
+        handle_->AdvancedInit.AutoBaudRateMode = config.auto_baud_mode;
+        handle_->AdvancedInit.MSBFirst = config.msb_first ?
+            UART_ADVFEATURE_MSBFIRST_ENABLE :
+            UART_ADVFEATURE_MSBFIRST_DISABLE;
 
         if (config.physical_mode == PhysicalMode::Rs485) {
             return HAL_RS485Ex_Init(

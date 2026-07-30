@@ -151,4 +151,44 @@ struct CommPorts<BuildMode::CanBridge> {
     void setup() { registry.setup_all(); }
 };
 
+template <>
+struct CommPorts<BuildMode::Unified> {
+    UartCommPort<> usart2;
+    UartCommPort<> usart3;
+    UartCommPort<> uart4;
+    UartCommPort<> uart5;
+    UartCommPort<> uart7;
+    UartCommPort<> uart8;
+    CanCommPort<> can1;
+    CanCommPort<> can2;
+    CanCommPort<> can3;
+    BasicCommPortRegistry<BoardConfig<BuildMode::Unified>::PortNum> registry;
+
+    explicit CommPorts(stm32_library::boards::prindog::Peripherals& peripherals)
+        : usart2(peripherals.rs485_uart2),
+          usart3(peripherals.rs485_uart3),
+          uart4(peripherals.rs485_uart4),
+          uart5(peripherals.rs485_uart5),
+          uart7(peripherals.rs485_uart7),
+          uart8(peripherals.rs485_uart8),
+          can1(peripherals.can1, 0, true, true),
+          can2(peripherals.can2, 0, true, true),
+          can3(peripherals.can3, 0, true, true),
+          registry(std::array<CommPortRef, 9>{
+              CommPortRef::make_uart("USART2", 0, usart2),
+              CommPortRef::make_uart("USART3", 1, usart3),
+              CommPortRef::make_uart("UART4", 2, uart4),
+              CommPortRef::make_uart("UART5", 3, uart5),
+              CommPortRef::make_uart("UART7", 4, uart7),
+              CommPortRef::make_uart("UART8", 5, uart8),
+              CommPortRef::make_can("CAN1", 6, can1),
+              CommPortRef::make_can("CAN2", 7, can2),
+              CommPortRef::make_can("CAN3", 8, can3),
+          })
+    {
+    }
+
+    void setup() { registry.setup_all(); }
+};
+
 } // namespace stm32_library::boards::prindog

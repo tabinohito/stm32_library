@@ -13,6 +13,7 @@ enum class BuildMode {
     Production,
     Dynamixel,
     CanBridge,
+    Unified,
 };
 
 template <BuildMode Mode>
@@ -90,6 +91,29 @@ struct BoardConfig<BuildMode::CanBridge> {
     static constexpr uint32_t Rs485BaudRate = 0;
     static constexpr bool DisableRs485TxDmaQueues = true;
     static constexpr bool EnableSessionHeartbeat = false;
+    static constexpr uint8_t SessionHeartbeatMessageId = 254;
+    static constexpr uint32_t SessionHeartbeatIntervalMs = 20;
+};
+
+/*
+ * One binary for every STM32_CAN_ETH board.  Physical ports are fixed and
+ * Flash configuration controls which subset is enabled.
+ */
+template <>
+struct BoardConfig<BuildMode::Unified> {
+    static constexpr size_t PortNum = 9;
+    static constexpr size_t RouteNum = 6;
+    static constexpr size_t MaxRouteNum = 16;
+    static constexpr uint8_t CarrierMessageId = 1;
+    static constexpr size_t MaxPayloadSize = 128;
+    static constexpr uint32_t BridgeTickHz = 20000;
+    static constexpr bool UseEstopPins = false;
+    static constexpr bool UseSensors = true;
+    static constexpr bool UseSensorDma = false;
+    static constexpr bool ConfigureRs485Baud = false;
+    static constexpr uint32_t Rs485BaudRate = 4000000;
+    static constexpr bool DisableRs485TxDmaQueues = false;
+    static constexpr bool EnableSessionHeartbeat = true;
     static constexpr uint8_t SessionHeartbeatMessageId = 254;
     static constexpr uint32_t SessionHeartbeatIntervalMs = 20;
 };

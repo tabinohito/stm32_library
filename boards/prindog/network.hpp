@@ -8,6 +8,7 @@
 
 #include "main.h"
 #include "realtime_bridge_interface/config/bridge_runtime_config.hpp"
+#include "stm32_library/boards/prindog/factory_defaults.h"
 
 extern "C" {
 #include "lwip.h"
@@ -23,37 +24,38 @@ struct PrindogNetworkConfig {
     using NetworkSettings =
         realtime_bridge_interface::config::NetworkSettings;
 
-    static constexpr uint8_t Ip0 = STM32_ETH_BRIDGE_IP0;
-    static constexpr uint8_t Ip1 = STM32_ETH_BRIDGE_IP1;
-    static constexpr uint8_t Ip2 = STM32_ETH_BRIDGE_IP2;
-    static constexpr uint8_t Ip3 = STM32_ETH_BRIDGE_IP3;
+    // Former board-id 1 values, now used only if no valid Flash record exists.
+    static constexpr uint8_t Ip0 = PRINDOG_FACTORY_IP0;
+    static constexpr uint8_t Ip1 = PRINDOG_FACTORY_IP1;
+    static constexpr uint8_t Ip2 = PRINDOG_FACTORY_IP2;
+    static constexpr uint8_t Ip3 = PRINDOG_FACTORY_IP3;
 
-    static constexpr uint8_t Netmask0 = STM32_ETH_BRIDGE_NETMASK_ADDR0;
-    static constexpr uint8_t Netmask1 = STM32_ETH_BRIDGE_NETMASK_ADDR1;
-    static constexpr uint8_t Netmask2 = STM32_ETH_BRIDGE_NETMASK_ADDR2;
-    static constexpr uint8_t Netmask3 = STM32_ETH_BRIDGE_NETMASK_ADDR3;
+    static constexpr uint8_t Netmask0 = PRINDOG_FACTORY_NETMASK0;
+    static constexpr uint8_t Netmask1 = PRINDOG_FACTORY_NETMASK1;
+    static constexpr uint8_t Netmask2 = PRINDOG_FACTORY_NETMASK2;
+    static constexpr uint8_t Netmask3 = PRINDOG_FACTORY_NETMASK3;
 
-    static constexpr uint8_t Gateway0 = STM32_ETH_BRIDGE_NETMASK_GATEWAY0;
-    static constexpr uint8_t Gateway1 = STM32_ETH_BRIDGE_NETMASK_GATEWAY1;
-    static constexpr uint8_t Gateway2 = STM32_ETH_BRIDGE_NETMASK_GATEWAY2;
-    static constexpr uint8_t Gateway3 = STM32_ETH_BRIDGE_NETMASK_GATEWAY3;
+    static constexpr uint8_t Gateway0 = PRINDOG_FACTORY_GATEWAY0;
+    static constexpr uint8_t Gateway1 = PRINDOG_FACTORY_GATEWAY1;
+    static constexpr uint8_t Gateway2 = PRINDOG_FACTORY_GATEWAY2;
+    static constexpr uint8_t Gateway3 = PRINDOG_FACTORY_GATEWAY3;
 
-    static constexpr uint8_t Master0 = STM32_ETH_BRIDGE_NETMASK_GATEWAY0;
-    static constexpr uint8_t Master1 = STM32_ETH_BRIDGE_NETMASK_GATEWAY1;
-    static constexpr uint8_t Master2 = STM32_ETH_BRIDGE_NETMASK_GATEWAY2;
-    static constexpr uint8_t Master3 = STM32_ETH_BRIDGE_NETMASK_GATEWAY3;
+    static constexpr uint8_t Master0 = PRINDOG_FACTORY_MASTER0;
+    static constexpr uint8_t Master1 = PRINDOG_FACTORY_MASTER1;
+    static constexpr uint8_t Master2 = PRINDOG_FACTORY_MASTER2;
+    static constexpr uint8_t Master3 = PRINDOG_FACTORY_MASTER3;
 
-    static constexpr uint16_t LocalUdpPort = PRINDOG_LOCAL_UDP_PORT;
-    static constexpr uint16_t MasterUdpPort = PRINDOG_MASTER_UDP_PORT;
+    static constexpr uint16_t LocalUdpPort = PRINDOG_FACTORY_LOCAL_UDP_PORT;
+    static constexpr uint16_t MasterUdpPort = PRINDOG_FACTORY_MASTER_UDP_PORT;
 
     // Locally administered MAC address.
     // 02 のbitが「ローカル管理」を意味するので、実験用に安全。
-    static constexpr uint8_t Mac0 = 0x02;
-    static constexpr uint8_t Mac1 = 0x80;
-    static constexpr uint8_t Mac2 = 0xE1;
-    static constexpr uint8_t Mac3 = 0x00;
-    static constexpr uint8_t Mac4 = 0x00;
-    static constexpr uint8_t Mac5 = 0x01 + PRINDOG_BOARD_ID;
+    static constexpr uint8_t Mac0 = PRINDOG_FACTORY_MAC0;
+    static constexpr uint8_t Mac1 = PRINDOG_FACTORY_MAC1;
+    static constexpr uint8_t Mac2 = PRINDOG_FACTORY_MAC2;
+    static constexpr uint8_t Mac3 = PRINDOG_FACTORY_MAC3;
+    static constexpr uint8_t Mac4 = PRINDOG_FACTORY_MAC4;
+    static constexpr uint8_t Mac5 = PRINDOG_FACTORY_MAC5;
 
     static NetworkSettings defaults() {
         NetworkSettings settings{};

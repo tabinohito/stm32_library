@@ -42,6 +42,24 @@ public:
         static_assert(ChannelNum == 3, "Prindog sensor wiring has 3 channels");
     }
 
+    void set_enabled_masks(
+        uint8_t current_sensor_mask,
+        uint8_t thermistor_sensor_mask
+    ) {
+        current_sensor_mask_ = current_sensor_mask;
+        thermistor_sensor_mask_ = thermistor_sensor_mask;
+        hub_.set_enabled_masks(
+            current_sensor_mask,
+            thermistor_sensor_mask
+        );
+    }
+
+    bool enabled() const {
+        return
+            current_sensor_mask_ != 0 ||
+            thermistor_sensor_mask_ != 0;
+    }
+
     void update_all() {
         if constexpr (Config::UseSensors) {
             hub_.update();
@@ -102,6 +120,10 @@ private:
     std::array<MuxChannel, ChannelNum> thermistor_channels_{};
     Hub hub_;
     PrindogAcyclicBuffer& acyclic_buffer_;
+    uint8_t current_sensor_mask_ =
+        Config::UseSensors ? static_cast<uint8_t>((1U << ChannelNum) - 1U) : 0U;
+    uint8_t thermistor_sensor_mask_ =
+        Config::UseSensors ? static_cast<uint8_t>((1U << ChannelNum) - 1U) : 0U;
 };
 
 } // namespace stm32_library::boards::prindog

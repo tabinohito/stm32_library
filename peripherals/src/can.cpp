@@ -48,30 +48,79 @@ HAL_StatusTypeDef stm32_library::stm32_peripherals::Can::restart(
     uint32_t filter_id,
     uint32_t filter_mask
 ) {
+  BitTimingConfig config{};
+  config.prescaler = handle_ != nullptr ? handle_->Init.Prescaler : 1U;
+  config.mode = mode;
+  config.sync_jump_width =
+      handle_ != nullptr ? handle_->Init.SyncJumpWidth : CAN_SJW_1TQ;
+  config.time_segment1 =
+      handle_ != nullptr ? handle_->Init.TimeSeg1 : CAN_BS1_1TQ;
+  config.time_segment2 =
+      handle_ != nullptr ? handle_->Init.TimeSeg2 : CAN_BS2_1TQ;
+  config.time_triggered_mode =
+      handle_ != nullptr ? handle_->Init.TimeTriggeredMode : DISABLE;
+  config.auto_bus_off =
+      handle_ != nullptr ? handle_->Init.AutoBusOff : DISABLE;
+  config.auto_wakeup =
+      handle_ != nullptr ? handle_->Init.AutoWakeUp : DISABLE;
+  config.auto_retransmission =
+      handle_ != nullptr ? handle_->Init.AutoRetransmission : ENABLE;
+  config.receive_fifo_locked =
+      handle_ != nullptr ? handle_->Init.ReceiveFifoLocked : DISABLE;
+  config.transmit_fifo_priority =
+      handle_ != nullptr ? handle_->Init.TransmitFifoPriority : DISABLE;
+  config.filter_id = filter_id;
+  config.filter_mask = filter_mask;
+  return configure(config);
+}
+
+HAL_StatusTypeDef stm32_library::stm32_peripherals::Can::stop() {
   if (handle_ == nullptr) {
     return HAL_ERROR;
   }
 
   if (handle_->State == HAL_CAN_STATE_LISTENING) {
-    const HAL_StatusTypeDef status = HAL_CAN_Stop(handle_);
-    if (status != HAL_OK) {
-      return status;
-    }
+    return HAL_CAN_Stop(handle_);
   }
 
-  HAL_StatusTypeDef status = HAL_CAN_DeInit(handle_);
+  return HAL_OK;
+}
+
+HAL_StatusTypeDef stm32_library::stm32_peripherals::Can::configure(
+    const BitTimingConfig& config
+) {
+  if (handle_ == nullptr) {
+    return HAL_ERROR;
+  }
+
+  HAL_StatusTypeDef status = stop();
   if (status != HAL_OK) {
     return status;
   }
 
-  handle_->Init.Mode = mode;
+  status = HAL_CAN_DeInit(handle_);
+  if (status != HAL_OK) {
+    return status;
+  }
+
+  handle_->Init.Prescaler = config.prescaler;
+  handle_->Init.Mode = config.mode;
+  handle_->Init.SyncJumpWidth = config.sync_jump_width;
+  handle_->Init.TimeSeg1 = config.time_segment1;
+  handle_->Init.TimeSeg2 = config.time_segment2;
+  handle_->Init.TimeTriggeredMode = config.time_triggered_mode;
+  handle_->Init.AutoBusOff = config.auto_bus_off;
+  handle_->Init.AutoWakeUp = config.auto_wakeup;
+  handle_->Init.AutoRetransmission = config.auto_retransmission;
+  handle_->Init.ReceiveFifoLocked = config.receive_fifo_locked;
+  handle_->Init.TransmitFifoPriority = config.transmit_fifo_priority;
 
   status = HAL_CAN_Init(handle_);
   if (status != HAL_OK) {
     return status;
   }
 
-  return start(filter_id, filter_mask);
+  return start(config.filter_id, config.filter_mask);
 }
 
 // CAN送信

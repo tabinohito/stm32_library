@@ -12,8 +12,10 @@
 
 #include "stm32_library/boards/prindog/platform.hpp"
 #include "stm32_library/boards/prindog/acyclic.hpp"
+#include "stm32_library/boards/prindog/default_config.hpp"
 #include "stm32_library/boards/prindog/ports.hpp"
 #include "stm32_library/boards/prindog/profiles.hpp"
+#include "stm32_library/boards/prindog/runtime_config_adapter.hpp"
 #include "stm32_library/boards/prindog/sensor_service.hpp"
 #include "realtime_bridge_interface/components/sensor_service.hpp"
 #include "stm32_library/boards/prindog/hardware.hpp"
@@ -65,7 +67,13 @@ public:
 
     void setup() {
         PrindogPlatformSetup::setup_or_fail<Config>(peripherals);
-        comm_ports.setup();
+        if constexpr (Mode == BuildMode::Unified) {
+            if (!runtime_config_applied_) {
+                comm_ports.setup();
+            }
+        } else {
+            comm_ports.setup();
+        }
 
         for (size_t i = 0; i < comm_ports.registry.size(); i++) {
             comm_ports.registry[i].safety().set_emergency(true);
@@ -99,14 +107,83 @@ public:
         return sensors_.step_index();
     }
 
+    static auto factory_port_settings() {
+        return make_factory_port_settings();
+    }
+
+    static auto factory_feature_settings() {
+        return make_factory_feature_settings();
+    }
+
+    bool apply_runtime_config(
+        const realtime_bridge_interface::config::BridgeRuntimeConfig& config
+    ) {
+        constexpr uint8_t ValidSensorMask =
+            static_cast<uint8_t>((1U << ChannelNum) - 1U);
+        if (
+            (config.features.current_sensor_mask & ~ValidSensorMask) != 0 ||
+            (config.features.thermistor_sensor_mask & ~ValidSensorMask) != 0
+        ) {
+            return false;
+        }
+
+        if (!PrindogRuntimeConfigAdapter::apply_ports(
+                config,
+                peripherals,
+                comm_ports.registry
+            )) {
+            return false;
+        }
+
+        features_ = config.features;
+        runtime_config_applied_ = true;
+        sensor_service_.set_enabled_masks(
+            features_.current_sensor_mask,
+            features_.thermistor_sensor_mask
+        );
+
+        const bool initial_emergency =
+            features_.emergency_enabled &&
+            !features_.acyclic_emergency_enabled;
+        set_emergency_outputs(initial_emergency);
+        return true;
+    }
+
+    void handle_acyclic_rx(uint8_t index, uint8_t value) {
+        if (
+            !features_.emergency_enabled ||
+            !features_.acyclic_emergency_enabled ||
+            index != features_.acyclic_emergency_index
+        ) {
+            return;
+        }
+
+        set_emergency_outputs(
+            value == features_.acyclic_emergency_active_value
+        );
+    }
+
+    bool sensors_enabled() const {
+        return sensor_service_.enabled();
+    }
+
 private:
+    void set_emergency_outputs(bool asserted) {
+        for (auto& output : peripherals.emergency) {
+            output = asserted ? 1 : 0;
+        }
+    }
+
     PrindogSensorService<Config, ChannelNum> sensor_service_;
     realtime_bridge_interface::components::SensorServiceRef sensors_;
+    realtime_bridge_interface::config::BoardFeatureSettings features_{};
+    bool runtime_config_applied_ = false;
 };
 
 using UsbDebugBoard = Board<BuildMode::UsbDebug>;
 using ProductionBoard = Board<BuildMode::Production>;
 using DynamixelBoard = Board<BuildMode::Dynamixel>;
 using CanBridgeBoard = Board<BuildMode::CanBridge>;
+using UnifiedBoard = Board<BuildMode::Unified>;
 
 } // namespace stm32_library::boards::prindog

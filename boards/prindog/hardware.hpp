@@ -192,6 +192,9 @@ namespace stm32_library::boards::prindog {
 			    static uint8_t rs485_uart2_tx_queue[32768] __attribute__((aligned(32))) = {};
 			    static uint8_t rs485_uart3_tx_queue[32768] __attribute__((aligned(32))) = {};
 			    static uint8_t rs485_uart4_tx_queue[32768] __attribute__((aligned(32))) = {};
+			    static uint8_t rs485_uart5_tx_queue[8192] __attribute__((aligned(32))) = {};
+			    static uint8_t rs485_uart7_tx_queue[8192] __attribute__((aligned(32))) = {};
+			    static uint8_t rs485_uart8_tx_queue[8192] __attribute__((aligned(32))) = {};
 
 			    peri.rs485_uart2.use_dma_transmit(true);
 			    peri.rs485_uart2.use_dma_transmit_queue(
@@ -213,6 +216,27 @@ namespace stm32_library::boards::prindog {
 			        sizeof(rs485_uart4_tx_queue)
 			    );
 			    peri.rs485_uart4.reset_tx_counters();
+
+			    peri.rs485_uart5.use_dma_transmit(true);
+			    peri.rs485_uart5.use_dma_transmit_queue(
+			        rs485_uart5_tx_queue,
+			        sizeof(rs485_uart5_tx_queue)
+			    );
+			    peri.rs485_uart5.reset_tx_counters();
+
+			    peri.rs485_uart7.use_dma_transmit(true);
+			    peri.rs485_uart7.use_dma_transmit_queue(
+			        rs485_uart7_tx_queue,
+			        sizeof(rs485_uart7_tx_queue)
+			    );
+			    peri.rs485_uart7.reset_tx_counters();
+
+			    peri.rs485_uart8.use_dma_transmit(true);
+			    peri.rs485_uart8.use_dma_transmit_queue(
+			        rs485_uart8_tx_queue,
+			        sizeof(rs485_uart8_tx_queue)
+			    );
+			    peri.rs485_uart8.reset_tx_counters();
 
 			    auto &spi = peri.spi;
 			    auto &nss = peri.nss;

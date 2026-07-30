@@ -15,17 +15,18 @@ namespace stm32_library::boards::prindog {
 inline std::array<uint8_t, 256> config_uart_rx_dma_buffer
     __attribute__((section(".ConfigUartRxSection"), aligned(32)));
 
-inline std::array<uint8_t, 4096> config_uart_tx_dma_buffer
+inline std::array<uint8_t, 12288> config_uart_tx_dma_buffer
     __attribute__((section(".ConfigUartTxSection"), aligned(32)));
 
 enum class BridgeRunMode {
     BearMotorBridge,
     DynamixelBridge,
     CanBridge,
+    Unified,
 };
 
 constexpr BridgeRunMode ActiveBridgeMode =
-    BridgeRunMode::DynamixelBridge;
+    BridgeRunMode::Unified;
 
 template <BridgeRunMode Mode>
 struct BridgeRunModeTraits;
@@ -43,6 +44,11 @@ struct BridgeRunModeTraits<BridgeRunMode::DynamixelBridge> {
 template <>
 struct BridgeRunModeTraits<BridgeRunMode::CanBridge> {
     using Board = CanBridgeBoard;
+};
+
+template <>
+struct BridgeRunModeTraits<BridgeRunMode::Unified> {
+    using Board = UnifiedBoard;
 };
 
 [[noreturn]] inline void run_active_bridge_app()
