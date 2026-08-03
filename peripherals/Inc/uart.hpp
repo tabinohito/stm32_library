@@ -165,6 +165,15 @@ public:
         return handle_ != nullptr && handle_->hdmatx != nullptr;
     }
 
+    bool dma_receive_available() const {
+        return handle_ != nullptr && handle_->hdmarx != nullptr;
+    }
+
+    bool dma_receive_active() const {
+        return dma_receive_available() &&
+            handle_->RxState == HAL_UART_STATE_BUSY_RX;
+    }
+
     void poll_tx_dma() {
         if (use_dma_transmit_ && tx_dma_queue_enabled_ && dma_transmit_available()) {
             kick_tx_dma();
