@@ -50,8 +50,20 @@ public:
 #endif
   }
 
+  static uint32_t cycles() {
+    return now();
+  }
+
+  static uint32_t millis() {
+    return HAL_GetTick();
+  }
+
+  static uint32_t core_clock_hz() {
+    return HAL_RCC_GetHCLKFreq();
+  }
+
   static uint32_t cycles_per_us() {
-    return HAL_RCC_GetHCLKFreq() / 1000000U;
+    return core_clock_hz() / 1000000U;
   }
 
   static uint32_t us_to_cycles(uint32_t microseconds) {
@@ -70,6 +82,12 @@ public:
 
   static void wait_until(uint32_t deadline) {
     while (static_cast<int32_t>(now() - deadline) < 0) {
+    }
+  }
+
+  [[noreturn]] static void system_reset() {
+    NVIC_SystemReset();
+    while (true) {
     }
   }
 };
