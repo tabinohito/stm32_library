@@ -164,9 +164,11 @@ namespace stm32_library::stm32_modules {
 		  read_mode_ready_ = CycleCounter::enable();
 		  if (read_mode_ready_) {
 			  const uint32_t cycles_per_us = CycleCounter::cycles_per_us();
-			  tclk_tb_cycles_ = (cycles_per_us * 5U + 1U) / 2U;
-			  tcs_cycles_ = cycles_per_us * 40U;
-			  tr_cycles_ = cycles_per_us * 3U;
+			  // The datasheet values are minima. Keep margin for GPIO and
+			  // peripheral timing variation in optimized builds.
+			  tclk_tb_cycles_ = cycles_per_us * 5U;
+			  tcs_cycles_ = cycles_per_us * 50U;
+			  tr_cycles_ = cycles_per_us * 5U;
 			  spi_timeout_cycles_ = cycles_per_us * 100U;
 			  last_cs_release_cycle_ = CycleCounter::now();
 			  has_last_cs_release_ = true;
