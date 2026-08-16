@@ -4,6 +4,8 @@
 
 #ifdef HAL_TIM_MODULE_ENABLED
 
+#include <algorithm>
+
 namespace stm32_library::stm32_peripherals {
 class PwmOut {
 public:

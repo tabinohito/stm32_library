@@ -1,4 +1,3 @@
-#pragma once
 #include "../Inc/tone.hpp"
 
 #ifdef HAL_TIM_MODULE_ENABLED

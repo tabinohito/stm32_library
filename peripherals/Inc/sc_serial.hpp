@@ -1,5 +1,7 @@
 #pragma once
 
+#include "main.h"
+
 #ifdef HAL_UART_MODULE_ENABLED
 
 #include "uart.hpp"

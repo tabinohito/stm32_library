@@ -1,5 +1,3 @@
-#pragma once
-
 #include "../Inc/MCP320x.hpp"
 
 #ifdef HAL_SPI_MODULE_ENABLED

@@ -1,4 +1,3 @@
-#pragma once
 #include "../Inc/amt252d.hpp"
 
 #ifdef HAL_SPI_MODULE_ENABLED

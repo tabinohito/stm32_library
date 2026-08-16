@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdio.h>
+#include "main.h"
 
 namespace stm32_library::stm32_modules
 {

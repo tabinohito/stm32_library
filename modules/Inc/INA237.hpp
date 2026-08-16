@@ -1,10 +1,10 @@
 #pragma once
 
 #include "main.h"
-#include "INA2xx.hpp"
 
 #ifdef HAL_I2C_MODULE_ENABLED
 
+#include "INA2xx.hpp"
 #include "stm32_library/peripherals/stm32_peripherals.hpp"
 #include <cstdint>
 
