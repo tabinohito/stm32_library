@@ -7,9 +7,10 @@
 #pragma once
 
 #include "main.h"
-#include "udp_queue.hpp"
 
 #ifdef HAL_ETH_MODULE_ENABLED
+
+#include "udp_queue.hpp"
 
 #include <array>
 #include <vector>

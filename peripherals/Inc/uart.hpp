@@ -4,6 +4,24 @@
 
 #ifdef HAL_UART_MODULE_ENABLED
 
+// Keep optional UART modes tied to the capabilities exposed by each STM32 HAL.
+// STM32F4's legacy UART does not provide AdvancedInit or hardware DE control.
+#if defined(UART_ADVFEATURE_TXINVERT_INIT) && \
+    defined(UART_ADVFEATURE_RXINVERT_INIT) && \
+    defined(UART_ADVFEATURE_SWAP_INIT) && \
+    defined(UART_ADVFEATURE_TXINV_ENABLE) && \
+    defined(UART_ADVFEATURE_TXINV_DISABLE) && \
+    defined(UART_ADVFEATURE_RXINV_ENABLE) && \
+    defined(UART_ADVFEATURE_RXINV_DISABLE) && \
+    defined(UART_ADVFEATURE_SWAP_ENABLE) && \
+    defined(UART_ADVFEATURE_SWAP_DISABLE)
+#define STM32_LIBRARY_UART_ADVANCED_FEATURES_AVAILABLE
+#endif
+
+#if defined(UART_DE_POLARITY_HIGH) && defined(UART_DE_POLARITY_LOW)
+#define STM32_LIBRARY_UART_RS485_AVAILABLE
+#endif
+
 #include "../misc/callback.hpp"
 #include "../misc/format.hpp"
 
@@ -60,12 +78,15 @@ public:
 
     enum class PhysicalMode {
         Uart,
+#ifdef STM32_LIBRARY_UART_RS485_AVAILABLE
         Rs485,
+#endif
     };
 
     struct LineConfig {
         uint32_t baud_rate = 115200;
         PhysicalMode physical_mode = PhysicalMode::Uart;
+#ifdef STM32_LIBRARY_UART_ADVANCED_FEATURES_AVAILABLE
         uint32_t word_length = UART_WORDLENGTH_8B;
         uint32_t stop_bits = UART_STOPBITS_1;
         uint32_t parity = UART_PARITY_NONE;
@@ -76,6 +97,8 @@ public:
         bool swap_rx_tx = false;
         bool invert_tx = false;
         bool invert_rx = false;
+#endif
+#ifdef STM32_LIBRARY_UART_RS485_AVAILABLE
         bool data_invert = false;
         bool overrun_disable = false;
         bool dma_disable_on_rx_error = false;
@@ -86,6 +109,7 @@ public:
         uint32_t rs485_de_polarity = UART_DE_POLARITY_HIGH;
         uint32_t rs485_assertion_time = 0;
         uint32_t rs485_deassertion_time = 0;
+#endif
     };
 
     explicit Uart(UART_HandleTypeDef *handle) : handle_(handle) {
@@ -123,6 +147,7 @@ public:
         handle_->Init.HwFlowCtl = config.hardware_flow_control;
         handle_->Init.OverSampling = config.oversampling;
         handle_->Init.OneBitSampling = config.one_bit_sampling;
+#ifdef STM32_LIBRARY_UART_ADVANCED_FEATURES_AVAILABLE
         handle_->AdvancedInit.AdvFeatureInit =
             UART_ADVFEATURE_TXINVERT_INIT |
             UART_ADVFEATURE_RXINVERT_INIT |
@@ -159,7 +184,9 @@ public:
         handle_->AdvancedInit.MSBFirst = config.msb_first ?
             UART_ADVFEATURE_MSBFIRST_ENABLE :
             UART_ADVFEATURE_MSBFIRST_DISABLE;
+#endif
 
+#ifdef STM32_LIBRARY_UART_RS485_AVAILABLE
         if (config.physical_mode == PhysicalMode::Rs485) {
             return HAL_RS485Ex_Init(
                 handle_,
@@ -168,24 +195,33 @@ public:
                 config.rs485_deassertion_time
             );
         }
+#endif
 
         return HAL_UART_Init(handle_);
     }
 
     HAL_StatusTypeDef configure_uart(
-        uint32_t baud_rate,
+        uint32_t baud_rate
+#ifdef STM32_LIBRARY_UART_ADVANCED_FEATURES_AVAILABLE
+        ,
         bool swap_rx_tx = false
+#endif
     ) {
         LineConfig config{};
         config.baud_rate = baud_rate;
         config.physical_mode = PhysicalMode::Uart;
+#ifdef STM32_LIBRARY_UART_ADVANCED_FEATURES_AVAILABLE
         config.swap_rx_tx = swap_rx_tx;
+#endif
         return configure(config);
     }
 
+#ifdef STM32_LIBRARY_UART_RS485_AVAILABLE
     HAL_StatusTypeDef configure_rs485(
         uint32_t baud_rate,
+#ifdef STM32_LIBRARY_UART_ADVANCED_FEATURES_AVAILABLE
         bool swap_rx_tx = false,
+#endif
         uint32_t de_polarity = UART_DE_POLARITY_HIGH,
         uint32_t assertion_time = 0,
         uint32_t deassertion_time = 0
@@ -193,12 +229,15 @@ public:
         LineConfig config{};
         config.baud_rate = baud_rate;
         config.physical_mode = PhysicalMode::Rs485;
+#ifdef STM32_LIBRARY_UART_ADVANCED_FEATURES_AVAILABLE
         config.swap_rx_tx = swap_rx_tx;
+#endif
         config.rs485_de_polarity = de_polarity;
         config.rs485_assertion_time = assertion_time;
         config.rs485_deassertion_time = deassertion_time;
         return configure(config);
     }
+#endif
 
     void use_dma_transmit(bool use_dma = true) {
         use_dma_transmit_ = use_dma;
@@ -210,6 +249,15 @@ public:
 
     bool dma_transmit_available() const {
         return handle_ != nullptr && handle_->hdmatx != nullptr;
+    }
+
+    bool dma_receive_available() const {
+        return handle_ != nullptr && handle_->hdmarx != nullptr;
+    }
+
+    bool dma_receive_active() const {
+        return dma_receive_available() &&
+            handle_->RxState == HAL_UART_STATE_BUSY_RX;
     }
 
     void poll_tx_dma() {
@@ -571,6 +619,8 @@ public:
             return;
         }
 
+#if defined(UART_CLEAR_OREF) && defined(UART_CLEAR_NEF) && \
+    defined(UART_CLEAR_PEF) && defined(UART_CLEAR_FEF)
         __HAL_UART_CLEAR_FLAG(
             handle_,
             UART_CLEAR_OREF |
@@ -578,6 +628,11 @@ public:
             UART_CLEAR_PEF |
             UART_CLEAR_FEF
         );
+#elif defined(__HAL_UART_CLEAR_OREFLAG)
+        // Legacy UARTs (including STM32F4) clear all PE/FE/NE/ORE errors by
+        // reading SR followed by DR; this HAL macro performs that sequence.
+        __HAL_UART_CLEAR_OREFLAG(handle_);
+#endif
     }
 
     HAL_StatusTypeDef restart_receive_dma() {

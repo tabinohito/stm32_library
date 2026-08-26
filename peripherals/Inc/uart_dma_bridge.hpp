@@ -4,9 +4,10 @@
 #include <cstdint>
 
 #include "main.h"
-#include "uart.hpp"
 
 #ifdef HAL_UART_MODULE_ENABLED
+
+#include "uart.hpp"
 
 namespace stm32_library::stm32_peripherals {
 

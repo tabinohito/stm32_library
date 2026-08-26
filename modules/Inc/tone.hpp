@@ -1,9 +1,10 @@
 #pragma once
 
-#include <stdio.h>
-#include "../../peripherals/stm32_peripherals.hpp"
+#include "main.h"
 
 #ifdef HAL_TIM_MODULE_ENABLED
+
+#include "../../peripherals/Inc/pwm_out.hpp"
 
 namespace stm32_library::stm32_modules
 {

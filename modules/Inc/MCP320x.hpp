@@ -8,10 +8,11 @@
 #pragma once
 
 #include "main.h"
-#include "stm32_library/peripherals/stm32_peripherals.hpp"
-#include "time_util.hpp"
 
 #ifdef HAL_SPI_MODULE_ENABLED
+
+#include "stm32_library/peripherals/stm32_peripherals.hpp"
+#include "time_util.hpp"
 
 namespace stm32_library::stm32_modules {
 namespace stm32_peripherals = stm32_library::stm32_peripherals;
